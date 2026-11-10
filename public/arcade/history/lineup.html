@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>Opponent Lineup · Founders Fight</title>
+  <link rel="stylesheet" href="../arcade.css">
+  <style>
+    .opponent-page { width: min(1500px, 100%); padding: clamp(16px, 3vw, 44px); }
+    .opponent-mast, .lineup-tools {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .opponent-mast { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .opponent-mast > a:last-child { color: var(--muted); font: 700 12px var(--mono); text-decoration: none; }
+    .opponent-mast > a:last-child:hover { color: var(--ink); }
+    .lineup-tools { margin: clamp(24px, 5vh, 48px) 0 18px; align-items: end; }
+    .world-tour .lineup-tools h1 { font-size: clamp(36px, 6vw, 82px); }
+    .lineup-tools p, .lineup-note, #lineup-status { color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .lineup-tools p { margin: 8px 0 0; }
+    .lineup-buttons { display: flex; gap: 8px; align-items: center; }
+    .lineup-buttons output { min-width: 4ch; color: var(--muted); text-align: center; font: 12px var(--mono); }
+    .lineup-buttons .zoom { width: 44px; font-size: 18px; }
+    #walk-cycle { margin-right: 6px; }
+    #walk-cycle[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+    #lineup-scroller { overflow-x: auto; border: 1px solid var(--line); background: #1d1e27; }
+    #lineup-scroller:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    #lineup {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      width: calc(100% * var(--lineup-zoom, 1));
+      min-width: calc(756px * var(--lineup-zoom, 1));
+      margin-inline: auto;
+    }
+    .opponent { position: relative; margin: 0; min-width: 0; border-right: 1px solid #ffffff13; text-align: center; }
+    .opponent:last-child { border-right: 0; }
+    .opponent-round { position: absolute; top: 10px; left: 10px; color: var(--accent); font: 700 11px var(--mono); }
+    .opponent canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-bottom: 2px solid #ae8c6e;
+      background:
+        repeating-linear-gradient(to top, transparent 0 calc(11.96% - 1px), #ffffff14 calc(11.96% - 1px) 11.96%),
+        radial-gradient(ellipse at bottom, color-mix(in srgb, var(--accent) 12%, #24242d), #1d1e27 74%);
+      image-rendering: pixelated;
+    }
+    .opponent figcaption { display: grid; gap: 5px; padding: 13px 4px 16px; }
+    .opponent strong { font-size: clamp(12px, 1.18vw, 17px); line-height: 1.2; }
+    .opponent b { color: var(--accent); font: 700 clamp(13px, 1.3vw, 18px) var(--mono); }
+    .opponent small { color: var(--muted); font: 11px/1.3 var(--mono); }
+    .lineup-note { margin-top: 14px; font-size: 12px; }
+    .lineup-swipe { display: none; }
+    @media (max-width: 810px) { .lineup-swipe { display: inline; } }
+  </style>
+  <script type="module" src="./lineup.js"></script>
+</head>
+<body class="world-tour">
+  <main class="opponent-page">
+    <header class="opponent-mast">
+      <a href="../" class="wordmark"><span class="brand-mark" aria-hidden="true">F</span> Founders Fight</a>
+      <a href="../">‹ Back to fighters</a>
+    </header>
+    <div class="lineup-tools">
+      <div>
+        <h1>Opponent <em>Lineup</em></h1>
+        <p>Seven campaign opponents at base stature, on a shared ground line.</p>
+      </div>
+      <div class="lineup-buttons" role="group" aria-label="Lineup controls" hidden>
+        <button id="walk-cycle" type="button" aria-pressed="false">Walk cycle</button>
+        <button id="zoom-out" class="zoom" type="button" aria-label="Zoom out">−</button>
+        <output id="zoom-level" aria-live="polite">100%</output>
+        <button id="zoom-in" class="zoom" type="button" aria-label="Zoom in">+</button>
+      </div>
+    </div>
+    <p id="lineup-status" role="status">Loading historical opponents…</p>
+    <section id="lineup-scroller" tabindex="0" aria-label="Opponent comparison" hidden>
+      <div id="lineup"></div>
+    </section>
+    <p class="lineup-note">Each guide marks 25 cm. Artistic estimates are game design values. <span class="lineup-swipe">Swipe sideways to see the full roster.</span></p>
+    <noscript><p>Enable JavaScript to see the opponent lineup.</p></noscript>
+  </main>
+</body>
+</html>

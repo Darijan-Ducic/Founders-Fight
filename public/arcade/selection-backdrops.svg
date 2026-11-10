@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1792" height="256" viewBox="0 0 1792 256">
+  <defs>
+    <pattern id="light-print" width="5" height="5" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r=".8" fill="#efe8cb" opacity=".22"/>
+    </pattern>
+    <pattern id="dark-print" width="4" height="4" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r=".7" fill="#101825" opacity=".34"/>
+    </pattern>
+  </defs>
+
+  <svg id="sam" x="0" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <defs>
+      <pattern id="sam-pixel-reticle" width="8" height="8" patternUnits="userSpaceOnUse">
+        <path fill="#c2c4b0" opacity=".36" d="M0 0h2v2H0zM4 4h2v2H4z"/>
+      </pattern>
+    </defs>
+    <path fill="#222130" d="M0 0h256v256H0z"/>
+    <path fill="#2e3546" d="M0 152 110 0h36L0 203zM0 235l72-98h30L15 256H0z"/>
+    <path fill="#344d59" d="M152 0h104v168l-63 88h-52l46-64h-22l45-63h-30l35-49h-37l19-27h-48l22-30h-36z"/>
+    <path fill="#486371" d="M190 0h66v73l-30 42h-34l25-35h-39l19-27h-48z"/>
+    <path fill="url(#sam-pixel-reticle)" d="M194 0h62v150l-40 55h-33l26-36h-22l44-61h-39l25-35h-30l16-22h-46zM0 159l57-79h19L0 187z"/>
+  </svg>
+
+  <svg id="anthropic" x="256" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#302327" d="M0 0h256v256H0z"/>
+    <path fill="#5a3836" d="M0 48 111 0h43L0 111zM0 155l68-35-13 51L0 213z"/>
+    <path fill="#a45f4e" d="M136 0h120v197l-39-26-16-35-37-19-13-40-30-17z"/>
+    <path fill="#d97757" d="M161 0h95v143l-33-24-18-38-33-19-12-32z"/>
+    <path fill="#e8c8af" d="M198 0h58v99l-29-23-10-32-25-19z"/>
+    <path fill="url(#light-print)" d="M161 0h95v158l-39-24-15-41-43-28-19-39zM0 133l53-26v39L0 174z"/>
+  </svg>
+
+  <svg id="spacex" x="512" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#1e2127" d="M0 0h256v256H0z"/>
+    <path fill="#303740" d="M0 213C69 138 158 104 256 105v151H0z"/>
+    <path d="M-35 228C36 98 153 32 281 23" fill="none" stroke="#555d66" stroke-width="64"/>
+    <path d="M-35 222C36 92 153 26 281 17" fill="none" stroke="#9098a0" stroke-width="22"/>
+    <path d="M-35 228C36 98 153 32 281 23" fill="none" stroke="url(#dark-print)" stroke-width="64"/>
+  </svg>
+
+  <svg id="oracle" x="768" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#312d2a" d="M0 0h256v256H0z"/>
+    <path fill="#242428" d="M0 0h62v40h-16v33H0zM0 207h64l37 49H0z"/>
+    <path fill="#6d2c28" d="M129 0h127v194h-54v-32h-24v-37h-22V83h-18V49h-9zM0 100h33v29h15v36H0z"/>
+    <path fill="#c74634" d="M180 0h76v123h-23v27h-29v-35h-18V79h-20V44h14z"/>
+    <path fill="#9b382e" d="M256 131v61h-51v-38h29v-23zM0 136h32v26H0z"/>
+    <path fill="url(#dark-print)" d="M180 0h76v190h-46v-36h-20v-34h-20V79h-14V44h24zM0 112h42v64H0z"/>
+  </svg>
+
+  <svg id="google" x="1024" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#4285f4" d="M0 0H256V256H0z"/>
+    <path fill="#34a853" d="M0 203 90 139 240 256H0z"/>
+    <path fill="#fbbc05" d="M0 68 91 139 0 209z"/>
+    <path fill="#ea4335" d="M0 0H256V117H139C117 117 102 129 90 139L0 69z"/>
+  </svg>
+
+  <svg id="amazon" x="1280" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#232f3e" d="M0 0h256v256H0z"/>
+    <path fill="#1b2531" d="M0 0h112l-32 46H49L0 119zM0 174l81-96 38 17L0 237z"/>
+    <path fill="#845425" d="M164 0h92v156l-39 44h-42l31-43h-31l45-67h-37l18-29h-62z"/>
+    <path fill="#ff9900" fill-opacity=".77" d="M196 0h60v103l-39 49h-31l44-66h-37l20-27h-56z"/>
+    <path fill="#c27a27" d="M0 132l43-52h23L0 169z"/>
+    <path fill="url(#dark-print)" d="M196 0h60v155l-32 41h-35l43-60h-40l37-50h-36l20-27h-56zM0 127l43-53h25L0 171z"/>
+  </svg>
+
+  <svg id="berkshire" x="1536" y="0" width="256" height="256" viewBox="0 0 256 256" overflow="hidden">
+    <path fill="#222942" d="M0 0h256v256H0z"/>
+    <path fill="#2e4272" d="M0 22h60v16H43v68H0zM127 0h129v207l-26 49h-76l31-61h-33l34-69h-35l20-50h-44z"/>
+    <path fill="#62769f" d="M162 0h94v142l-33 29h-39l25-49h-35l20-43h-40z"/>
+    <path fill="#d9d5c8" fill-opacity=".65" d="M199 0h57v83l-19 16h-32l18-36h-45z"/>
+    <path fill="url(#dark-print)" d="M162 0h94v174l-38 23h-38l34-67h-40l20-51h-40z"/>
+    <path fill="none" stroke="#b4bbc6" stroke-opacity=".52" stroke-width="1.3"
+      d="M19 35h30v43H34v26H19M19 45h21v26H28v17h-9M237 11h-32l-20 48h42l-17 36h27"/>
+  </svg>
+</svg>

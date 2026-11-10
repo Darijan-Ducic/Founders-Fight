@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>Fighter Lineup · Founders Fight</title>
+  <link rel="stylesheet" href="./arcade.css">
+  <style>
+    .lineup-page {
+      width: min(1480px, 100%);
+      padding: clamp(16px, 3vw, 42px);
+    }
+    .lineup-mast, .lineup-heading {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+    .lineup-mast {
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .lineup-mast > a:last-child {
+      color: var(--muted);
+      font: 700 13px var(--mono);
+      text-decoration: none;
+      padding: 10px 0;
+    }
+    .lineup-mast > a:last-child:hover { color: var(--ink); }
+    .lineup-heading {
+      align-items: end;
+      padding: clamp(24px, 4vh, 40px) 0 18px;
+    }
+    .world-tour .lineup-heading h1 { font-size: clamp(42px, 6.3vw, 82px); }
+    .lineup-heading p, .lineup-note, #lineup-status {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .lineup-zoom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lineup-zoom button { width: 44px; font-size: 19px; }
+    .lineup-zoom output {
+      min-width: 4ch;
+      text-align: center;
+      color: var(--muted);
+      font: 12px var(--mono);
+    }
+    .lineup-scroller {
+      border: 1px solid var(--line);
+      background: #1b1d24;
+      overflow-x: auto;
+      scrollbar-color: #82726c #1b1d24;
+    }
+    .lineup-scroller:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    #lineup {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      width: calc(100% * var(--lineup-zoom, 1));
+      min-width: calc(704px * var(--lineup-zoom, 1));
+      margin-inline: auto;
+      background: #22242d;
+    }
+    .lineup-fighter {
+      margin: 0;
+      min-width: 0;
+      border-right: 1px solid #ffffff0d;
+      text-align: center;
+    }
+    .lineup-body {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-bottom: 2px solid var(--gold);
+      background: repeating-linear-gradient(to top, transparent 0 calc(25% - 1px), #ffffff0d calc(25% - 1px) 25%);
+      image-rendering: pixelated;
+    }
+    .lineup-fighter figcaption {
+      display: grid;
+      gap: 4px;
+      padding: 12px 2px;
+      font-size: clamp(11px, 1.1vw, 16px);
+      line-height: 1.1;
+    }
+    .lineup-fighter figcaption span { color: #e5ae91; font: 11px var(--mono); }
+    .lineup-face {
+      display: block;
+      width: 74%;
+      height: auto;
+      aspect-ratio: 1.12;
+      object-fit: cover;
+      object-position: top;
+      margin: 2px auto 0;
+      image-rendering: pixelated;
+    }
+    .lineup-note { margin-top: 12px; font-size: 12px; }
+    .lineup-swipe { display: none; }
+    @media (max-width: 752px) { .lineup-swipe { display: inline; } }
+  </style>
+  <script type="module" src="./lineup.js"></script>
+</head>
+<body class="world-tour">
+  <main class="lineup-page">
+    <header class="lineup-mast">
+      <a href="./" class="wordmark"><span class="brand-mark" aria-hidden="true">F</span> Founders Fight</a>
+      <a href="./">‹ Back to fighters</a>
+    </header>
+    <div class="lineup-heading">
+      <div>
+        <h1>Fighter <em>Lineup</em></h1>
+        <p>Seven arena sprites on the same ground line, with face details below.</p>
+      </div>
+      <div class="lineup-zoom" role="group" aria-label="Lineup zoom" hidden>
+        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+        <output id="zoom-level" aria-live="polite">100%</output>
+        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+      </div>
+    </div>
+    <p id="lineup-status" role="status"></p>
+    <div class="lineup-scroller" id="lineup-scroller" tabindex="0" role="region" aria-label="Fighter comparison" hidden>
+      <div id="lineup"></div>
+    </div>
+    <p class="lineup-note">Statures are game estimates. Amodei’s height is an art estimate. <span class="lineup-swipe">Swipe sideways to see the full roster.</span></p>
+    <noscript><p>Enable JavaScript to see the fighter lineup.</p></noscript>
+  </main>
+</body>
+</html>

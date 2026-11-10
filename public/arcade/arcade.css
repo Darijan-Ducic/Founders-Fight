@@ -1,0 +1,591 @@
+:root{color-scheme:dark;--bg:#121322;--panel:#1b1b2d;--ink:#fff0d2;--muted:#bcb0ab;--gold:#ffbd63;--line:#55404e;--display:Impact,"Arial Narrow",sans-serif;--mono:ui-monospace,monospace}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100svh;background:radial-gradient(ellipse at 45% 0,#312034,transparent 68%),var(--bg);color:var(--ink);font-family:var(--mono)}
+main{width:min(1180px,100%);margin:auto;padding:24px clamp(14px,4vw,44px) 32px}
+.mast,.stage-head,.stage-preview,.controls{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mast{border-bottom:1px solid var(--line);padding-bottom:16px;font-size:11px;letter-spacing:.14em;color:var(--muted)}
+.mast b,.wordmark,.signal{color:var(--gold)}
+.wordmark{text-decoration:none;font-weight:900}
+.hero{position:relative;padding:clamp(20px,4vw,48px) 0 26px}
+.eyebrow,small,.stage-head span,.stage-name{font-size:11px;letter-spacing:.16em;font-weight:700;color:var(--muted)}
+.eyebrow span{color:#886073}
+h1,h2{font-family:var(--display);line-height:.94;font-weight:900;letter-spacing:.005em;margin:12px 0 0}
+h1{font-size:clamp(55px,10vw,142px);text-shadow:4px 4px #5b2b3b}
+h1 em{font-style:normal;color:var(--gold)}
+.stamp{position:absolute;right:0;bottom:30px;display:flex;gap:12px;align-items:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 0;color:var(--muted);font-size:10px;letter-spacing:.14em;line-height:1.45}
+.stamp b{font:38px var(--display);color:var(--gold)}
+.roster{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+button{font:700 12px var(--mono);color:var(--ink);border:1px solid var(--line);background:var(--panel);padding:10px;cursor:pointer;touch-action:manipulation}
+button:hover{border-color:var(--gold);color:var(--gold)}
+button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.card{position:relative;padding:0;text-align:left;min-width:0;overflow:hidden;border-bottom:3px solid var(--accent)}
+.card:hover,.card:focus-visible{background:#3b2733}
+.card canvas{display:block;width:100%;aspect-ratio:1;image-rendering:pixelated}
+.card strong{display:block;padding:8px;min-height:42px;font-size:clamp(10px,1.12vw,14px)}
+.stage-preview{justify-content:flex-start;margin-top:16px;padding:12px;border:1px solid var(--line);background:#1b1928}
+.stage-preview small,.stage-preview strong{display:block}
+.stage-preview strong{margin-top:4px}
+.stage-name{margin-left:auto}
+.stage-head{margin:14px 0 10px}
+.zoom,.controls>div{display:flex;gap:6px}
+.zoom button{min-width:36px}
+.cabinet{position:relative;isolation:isolate;border:2px solid #a27166;background:#181b35;overflow:hidden}
+#stage{display:block;width:100%;aspect-ratio:16/9;image-rendering:pixelated;touch-action:none}
+.hud{position:absolute;inset:4% 4% auto;display:grid;grid-template-columns:minmax(0,1fr) clamp(48px,9vw,110px) minmax(0,1fr);gap:4%;align-items:center;text-shadow:2px 2px #1d162a;pointer-events:none}
+.hud>div:last-child{text-align:right}
+.hud b{font-size:clamp(9px,1.7vw,20px)}
+.hud>strong{text-align:center;color:var(--gold);font:clamp(24px,5vw,58px) var(--display)}
+meter{display:block;width:100%;height:clamp(10px,2vw,22px)}
+meter::-webkit-meter-bar{border:2px solid #f6d3a0;background:#3a263b;border-radius:0}
+meter::-webkit-meter-optimum-value{background:#ffba61}
+#boss-hp{direction:rtl}
+#boss-hp::-webkit-meter-optimum-value{background:#ff686b}
+.announce{position:absolute;inset:20% 0 17%;display:grid;place-items:center;font:clamp(58px,16vw,180px) var(--display);color:var(--gold);text-shadow:4px 5px #9e3049,7px 8px #201426;pointer-events:none}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#161325c9}
+.dialog{text-align:center;padding:12px}
+.dialog h2{font-size:clamp(31px,8vw,88px);margin:0 0 12px}
+.hot{background:var(--gold);border-color:var(--gold);color:#261928}
+.hot:hover{color:#261928;background:#ffdd9e}
+.controls{margin-top:10px}
+.controls button{min-height:44px;touch-action:none}
+.controls button:active{transform:translateY(2px)}
+kbd{margin-left:3px;color:inherit;opacity:.72}
+@media(max-width:690px){.roster{grid-template-columns:repeat(4,minmax(0,1fr))}.stamp{display:none}.stage-name{display:none}.stage-head span{font-size:8px;letter-spacing:.04em}.stage-head{gap:5px}.stage-head button{padding:8px}.zoom{gap:3px}}
+@media(max-width:350px){.roster{grid-template-columns:repeat(3,minmax(0,1fr))}.controls button{padding:7px}.controls kbd{display:none}}
+
+/* Fit the entire fight, including touch controls, inside a landscape window. */
+main.in-fight {
+  --fight-width: min(100%, max(680px, calc((100svh - 119px) * 16 / 9)));
+  width: 100%;
+  padding: 8px clamp(8px, 1.5vw, 24px) 12px;
+}
+.in-fight .mast { display: none; }
+#arena { width: var(--fight-width); margin-inline: auto; }
+.in-fight .stage-head { margin-top: 0; }
+.in-fight .cabinet { border-color: #a88e6e; box-shadow: 0 0 35px #362642; }
+#game:fullscreen, #game.expanded { background: #0d1020; overflow: auto; }
+#game.expanded { position: fixed; inset: 0; z-index: 10; }
+#fullscreen { font-size: 16px; line-height: 12px; }
+#fullscreen[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+#screen-status { margin: 6px 0; color: var(--muted); font-size: 11px; }
+@media (max-height: 540px) and (orientation: landscape) {
+  main.in-fight { --fight-width: min(100%, calc((100svh - 105px) * 16 / 9)); }
+  .in-fight .controls button { min-height: 40px; }
+  .in-fight .hud > strong { font-size: clamp(22px, 7vh, 42px); }
+  .in-fight .announce { font-size: min(17vw, 29vh); }
+}
+
+/* World Tour. History Fight shares the original arcade styles above. */
+.world-tour {
+  --bg: #111214;
+  --panel: #1b1b1e;
+  --ink: #f4ebdb;
+  --muted: #b9afa1;
+  --fight-yellow: #ffd34e;
+  --gold: #ff754d;
+  --line: #3e3b39;
+  --display: Impact, Haettenschweiler, "Arial Narrow", sans-serif;
+  --mono: "SFMono-Regular", Menlo, Consolas, monospace;
+  background:
+    repeating-linear-gradient(116deg, transparent 0 79px, #d1b39307 79px 80px),
+    radial-gradient(ellipse at 90% 4%, #322320 0, transparent 42%),
+    var(--bg);
+  font-family: "Avenir Next", Avenir, sans-serif;
+}
+
+.world-tour:has(> #game:not(.in-fight)) {
+  --gold: var(--fight-yellow);
+  background:
+    linear-gradient(#141211cc, #141211cc),
+    linear-gradient(180deg, #10101070, #10101050 45%, #10101013 72%, #10101044),
+    linear-gradient(90deg, #06091170, transparent 64%),
+    url("./selection-manifesto.webp") center / cover no-repeat #141211;
+}
+
+.world-tour #game:not(.in-fight) {
+  width: min(1520px, 100%);
+  min-height: 100svh;
+  padding: clamp(17px, 2.5vh, 28px) clamp(15px, 4vw, 46px) 32px;
+}
+
+.world-tour .mast {
+  justify-content: flex-start;
+  padding: 0 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--muted) 35%, transparent);
+}
+.world-tour .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: .45em;
+  color: var(--ink);
+  font: clamp(20px, 2.3vw, 32px)/1 var(--display);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 1.18em;
+  height: 1.18em;
+  color: #191315;
+  background: var(--gold);
+  clip-path: polygon(0 0, 100% 0, 100% 65%, 65% 100%, 0 100%);
+}
+.world-tour .mast .wordmark {
+  gap: 7px;
+  color: var(--gold);
+  font: 700 12px/1 var(--mono);
+  letter-spacing: .07em;
+}
+.world-tour .mast .brand-mark {
+  width: 22px;
+  height: 22px;
+  font: 17px/1 var(--display);
+}
+.select-hero {
+  padding: clamp(21px, 4vh, 38px) 0 clamp(18px, 4vh, 34px);
+  text-align: left;
+}
+.world-tour .eyebrow {
+  margin: 0;
+  font: 700 10px/1.4 var(--mono);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.world-tour h1 {
+  margin: 0;
+  font: clamp(44px, 6.1vw, 94px)/.95 var(--display);
+  text-transform: uppercase;
+  letter-spacing: -.02em;
+  text-shadow: none;
+}
+.world-tour h1 em { color: var(--gold); }
+.world-tour #pick { font-size: clamp(36px, 7.15vw, 94px); }
+.intro-copy {
+  max-width: 38ch;
+  margin: 15px 0 18px;
+  color: var(--muted);
+  font-size: clamp(13px, 1.3vw, 16px);
+  line-height: 1.5;
+}
+.world-tour button {
+  min-height: 44px;
+  border-radius: 0;
+  font-family: var(--mono);
+  transition: background-color 130ms, border-color 130ms, color 130ms, box-shadow 130ms;
+}
+.world-tour button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+.world-tour button:focus-visible, .world-tour a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.world-tour .hot {
+  background: var(--gold);
+  color: #211611;
+}
+.world-tour .hot:hover:not(:disabled) { background: var(--hot-hover, #ff9c72); }
+.world-tour #roster {
+  grid-template-columns: repeat(7, minmax(104px, 1fr));
+  gap: clamp(6px, .8vw, 12px);
+  margin-inline: -5px;
+  padding: 5px 5px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 5px;
+  scrollbar-color: #a66d57 #2b1c21;
+  scrollbar-width: thin;
+}
+.world-tour .card {
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  background: #211f20;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent), #211f20 55%);
+  text-align: center;
+}
+.world-tour .card:is(:hover:not(:disabled), :focus-visible) {
+  background: #2b2728;
+  border-color: var(--accent);
+}
+.world-tour .card .fighter-portrait {
+  display: block;
+  width: 100%;
+  aspect-ratio: .86;
+  object-fit: cover;
+  object-position: center;
+  background: #252237;
+}
+.world-tour .card strong {
+  display: grid;
+  place-items: center;
+  flex: 1 0 auto;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 4px;
+  font: 700 clamp(11px, 1.2vw, 16px)/1.16 "Avenir Next", Avenir, sans-serif;
+}
+.world-tour kbd {
+  display: inline-grid;
+  min-width: 20px;
+  min-height: 19px;
+  place-items: center;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid #97867866;
+  background: #a8917514;
+  color: var(--ink);
+  font: 700 9px var(--mono);
+  opacity: 1;
+}
+
+.world-tour #game.in-fight {
+  width: 100%;
+  height: 100svh;
+  padding: 0;
+}
+.world-tour #arena {
+  width: 100%;
+  height: 100%;
+  --stage-accent: #f5b86b;
+}
+.world-tour .cabinet {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  border: 0;
+  background: #101012;
+}
+.arena-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(7px, 1.8vw, 26px);
+  padding: max(7px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+  border-bottom: 1px solid #ead2b43d;
+  background: linear-gradient(90deg, #3d33242e, transparent 50%, #631f232e), #1d1b1c;
+}
+.world-tour #back {
+  padding-inline: clamp(6px, 1vw, 12px);
+  white-space: nowrap;
+}
+.world-tour .hud {
+  position: static;
+  grid-template-columns: minmax(0, 1fr) clamp(44px, 7vw, 108px) minmax(0, 1fr);
+  gap: clamp(7px, 1.8vw, 24px);
+  align-items: start;
+  text-shadow: none;
+  --player-energy: var(--fight-yellow);
+  --rival-energy: #f6514c;
+}
+.combatant {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: "name name" "life life" "charge gear";
+  gap: clamp(6px, .65vw, 9px) clamp(8px, 1.4vw, 16px);
+  min-width: 0;
+  --energy: var(--player-energy);
+}
+.opponent-score {
+  grid-template-areas: "name name" "life life" "gear charge";
+  --energy: var(--rival-energy);
+}
+.combatant-label, .combatant-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.combatant-label { grid-area: name; }
+.opponent-score .combatant-label { flex-direction: row-reverse; }
+.world-tour .combatant-label b {
+  color: var(--ink);
+  font: clamp(11px, 2vw, 22px)/1.05 var(--display);
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+.health-text {
+  flex-shrink: 0;
+  min-inline-size: 9ch;
+  color: var(--energy);
+  font: 700 clamp(9px, 1.15vw, 12px) var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.opponent-score .health-text { text-align: left; }
+.world-tour meter {
+  appearance: none;
+  background: #1b1719;
+}
+.world-tour :is(#player-hp, #boss-hp) {
+  grid-area: life;
+  height: clamp(12px, 1.6vw, 18px);
+  margin: 0;
+  --life-fill: repeating-linear-gradient(110deg, transparent 0 8px, #311f2636 8px 10px),
+    linear-gradient(180deg, #ffffff45, transparent 42%, #24151c1c),
+    var(--energy);
+}
+.world-tour meter::-webkit-meter-bar {
+  /* Span the browser's padding rows so the track paints at the set height. */
+  grid-row: 1 / -1;
+  height: 100%;
+  background: #312c2c;
+  border: 1px solid #c0a99945;
+  border-radius: 0;
+  box-shadow: none;
+}
+.world-tour :is(#player-hp, #boss-hp)::-webkit-meter-optimum-value { background: var(--life-fill); }
+.world-tour :is(#player-hp, #boss-hp)::-moz-meter-bar { background: var(--life-fill); }
+.combatant-meta {
+  grid-area: gear;
+  align-self: center;
+  justify-content: flex-end;
+  color: var(--muted);
+  font: clamp(8px, 1.1vw, 11px)/1.2 var(--mono);
+}
+.opponent-score .combatant-meta { justify-content: flex-start; }
+.combatant-meta > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.round-clock { align-self: center; text-align: center; }
+.round-clock span {
+  display: block;
+  color: var(--muted);
+  font: 700 clamp(8px, 1vw, 11px) var(--mono);
+  text-transform: uppercase;
+}
+.round-clock strong {
+  display: block;
+  color: var(--stage-accent);
+  font: clamp(25px, 4.2vw, 54px)/.95 var(--display);
+  font-variant-numeric: tabular-nums;
+}
+
+.playfield {
+  position: relative;
+  isolation: isolate;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--stage-accent), #101012 93%), #101012 72%);
+}
+.world-tour .playfield::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -20px;
+  background: var(--stage-backdrop) center / cover no-repeat;
+  filter: blur(16px) brightness(.38);
+  pointer-events: none;
+}
+.world-tour #stage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.world-tour #stage:focus-visible {
+  outline: 2px solid var(--stage-accent);
+  outline-offset: -3px;
+}
+.world-tour .announce {
+  inset: 0;
+  color: var(--ink);
+  font: clamp(60px, 15vw, 170px)/.9 var(--display);
+  text-shadow: 2px 3px #272122, 5px 6px #a33425, 0 0 18px #0f0a0c;
+  white-space: nowrap;
+}
+.world-tour .announce:empty { display: none; }
+.world-tour .overlay {
+  z-index: 3;
+  padding: 6px;
+  background: #131215d9;
+}
+.world-tour #menu:is([data-view="round-win"], [data-view="campaign-win"]) {
+  position: fixed;
+  --gold: var(--fight-yellow);
+  --dialog-accent: var(--gold);
+  --hot-hover: #fdd767;
+}
+.world-tour .dialog {
+  width: min(100%, 470px);
+  padding: clamp(7px, 2vw, 27px) 8px;
+}
+.world-tour .dialog .eyebrow { color: var(--dialog-accent, var(--stage-accent)); }
+.world-tour .dialog h2 {
+  margin: 4px 0 7px;
+  font: clamp(27px, 7vw, 68px)/.94 var(--display);
+}
+.world-tour #menu[data-view="campaign-win"] .dialog { width: min(100%, 680px); }
+.world-tour #menu[data-view="campaign-win"] h2 {
+  font-size: clamp(40px, min(8vw, 13svh), 80px);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.world-tour #menu-detail {
+  max-width: 43ch;
+  margin: 0 auto 11px;
+  color: var(--muted);
+  font-size: clamp(11px, 1.4vw, 15px);
+  line-height: 1.3;
+}
+.world-tour #menu-detail:empty { display: none; }
+.dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.world-tour .ultimate-status {
+  display: grid;
+  grid-area: charge;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "cells cells" "label charge";
+  align-content: center;
+  align-items: center;
+  gap: 2px 4px;
+  width: min(100%, 232px);
+  min-height: 20px;
+  padding: 1px 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #f9d9a2;
+  font: 700 clamp(8px, 1vw, 10px)/1 var(--mono);
+  letter-spacing: .025em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  --energy: #ffe2a0;
+}
+.world-tour .ultimate-status[aria-disabled="true"] { cursor: default; }
+.world-tour .ultimate-status[aria-disabled="false"] {
+  --energy: #fff0a9;
+  border-color: #ffe2a08c;
+  background: #ffe2a011;
+  color: #fff1cc;
+}
+.world-tour .boss-ultimate {
+  justify-self: end;
+  color: #ffa792;
+  --energy: #ff8e77;
+  --cells-direction: 270deg;
+}
+.world-tour .boss-ultimate[data-state="ready"],
+.world-tour .boss-ultimate[data-state="casting"] {
+  --energy: #ffc3a2;
+  border-color: #ff8e77a0;
+  background: #ff8e7714;
+  color: #ffe6df;
+}
+.world-tour .ultimate-status meter {
+  grid-area: cells;
+  height: 7px;
+  margin: 0;
+  background: #372c32;
+  /* Slice the whole track into eighths so the cells stay fixed as it fills. */
+  mask-image: repeating-linear-gradient(var(--cells-direction, 90deg),
+    #000 0 calc(12.5% - 2px), transparent calc(12.5% - 2px) 12.5%);
+  --charge-fill: linear-gradient(180deg, #ffffff52, transparent 70%), var(--energy);
+}
+.world-tour .boss-ultimate meter { direction: rtl; }
+.world-tour .ultimate-status meter::-webkit-meter-bar {
+  border: 0;
+  background: #372c32;
+  box-shadow: inset 0 0 0 1px #e6bd9b35;
+}
+.world-tour .ultimate-status meter::-webkit-meter-optimum-value { background: var(--charge-fill); }
+.world-tour .ultimate-status meter::-moz-meter-bar { background: var(--charge-fill); }
+.world-tour .ultimate-status[aria-disabled="false"] meter,
+.world-tour .boss-ultimate[data-state="ready"] meter {
+  filter: drop-shadow(0 0 3px var(--energy));
+}
+.world-tour .ultimate-status > span:first-child { grid-area: label; text-align: left; }
+.world-tour .ultimate-status > span:last-child {
+  grid-area: charge;
+  min-inline-size: 5ch;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.world-tour #ultimate-status > span:last-child::after {
+  content: "G";
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 1.35em;
+  height: 1.15em;
+  margin-left: 4px;
+  border: 1px solid currentColor;
+  visibility: hidden;
+}
+.world-tour #ultimate-status[aria-disabled="false"] > span:last-child::after { visibility: visible; }
+
+@media (max-width: 760px) {
+  .world-tour h1 { font-size: clamp(43px, 8vw, 68px); }
+  .combatant {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "name" "life" "charge" "gear";
+  }
+  .combatant-meta { justify-content: flex-start; }
+  .opponent-score .combatant-meta { justify-content: flex-end; }
+}
+@media (max-width: 540px) {
+  .select-hero { padding-block: 23px 21px; }
+  .world-tour h1 { font-size: clamp(36px, 10vw, 53px); }
+  .world-tour #pick { font-size: clamp(31px, 10.3vw, 53px); }
+  .intro-copy { margin: 10px 0 11px; }
+  .arena-top { padding-inline: 6px; }
+  .world-tour #back { min-width: 44px; }
+  .world-tour #back span { display: none; }
+  .combatant-label { min-height: 25px; align-items: end; }
+  .world-tour .health-text { min-inline-size: 3ch; font-size: 8px; }
+  .world-tour .health-total { display: none; }
+  .combatant-label b { overflow-wrap: anywhere; }
+  .round-pips { gap: 3px; }
+  .world-tour .dialog-actions button { font-size: 11px; }
+}
+@media (pointer: coarse) {
+  .world-tour .ultimate-status { min-height: 28px; }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .arena-top { padding-block: 4px; }
+  .world-tour #back { min-height: 34px; padding-block: 4px; }
+  .combatant { row-gap: 5px; }
+  .world-tour :is(#player-hp, #boss-hp) { height: 11px; }
+  .world-tour .combatant-label b { font-size: 13px; }
+  .round-clock strong { font-size: 28px; }
+  .world-tour .announce { font-size: min(12vw, 26vh); }
+  .world-tour .dialog h2 { font-size: clamp(25px, 7.5vh, 41px); }
+  .world-tour .dialog-actions button { min-height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-tour button { transition: none; }
+}
+
+.world-tour #campaign-notice,
+.world-tour #campaign-loading {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font: 700 clamp(11px, 1.3vw, 14px)/1.35 var(--mono);
+}
+.world-tour #campaign-notice {
+  color: var(--gold);
+}
+.world-tour #campaign-retry { margin-top: 8px; }
+.world-tour #boss-warning {
+  position: absolute;
+  inset: max(8px, 2.5%) 0 auto;
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  margin: 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--stage-accent);
+  background: #1e181bea;
+  color: var(--stage-accent);
+  text-align: center;
+  text-transform: uppercase;
+  font: 700 clamp(9px, 1.4vw, 13px)/1.15 var(--mono);
+  pointer-events: none;
+}

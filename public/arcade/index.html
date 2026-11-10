@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111214">
+  <title>Founders Fight</title>
+  <link rel="stylesheet" href="./arcade.css">
+  <script type="module" src="./game.js"></script>
+</head>
+<body class="world-tour">
+<main id="game">
+  <header class="mast">
+    <a href="./" class="wordmark"><span class="brand-mark" aria-hidden="true">F</span> Founders Fight</a>
+  </header>
+
+  <section id="select" aria-labelledby="pick">
+    <div class="select-hero">
+      <h1 id="pick">Choose Your <em>Fighter</em></h1>
+      <p id="campaign-notice" role="status" hidden></p>
+    </div>
+    <div class="roster" id="roster" role="group" aria-labelledby="pick"></div>
+    <p id="campaign-loading" role="status" hidden></p>
+    <button id="campaign-retry" type="button" hidden>Retry loading</button>
+    <noscript><p class="intro-copy">Enable JavaScript to play Founders Fight.</p></noscript>
+  </section>
+
+  <section id="arena" aria-label="Historical campaign duel" hidden>
+    <div class="cabinet">
+      <div class="arena-top">
+        <button id="back" type="button" aria-label="Back to fighters">‹ <span>Fighters</span></button>
+        <div class="hud">
+          <div class="combatant player-score">
+            <div class="combatant-label"><b id="player-name"></b><span id="player-health" class="health-text" aria-hidden="true"><span id="player-current">180</span><span id="player-total" class="health-total"></span></span></div>
+            <meter id="player-hp" aria-label="Player health" min="0" max="180" value="180"></meter>
+            <button id="ultimate-status" class="ultimate-status" type="button" aria-disabled="true" aria-label="Activate Ultimate (G)">
+              <span>Ultimate</span>
+              <meter id="ultimate-charge" aria-label="Ultimate charge" min="0" max="100" value="0"></meter>
+              <span id="ultimate-value" aria-hidden="true">0%</span>
+            </button>
+            <div class="combatant-meta">
+              <span id="player-weapon"></span>
+            </div>
+          </div>
+          <div class="round-clock">
+            <span id="round-number">Round 1 / 7</span>
+            <strong id="clock" aria-label="Seconds remaining">80</strong>
+          </div>
+          <div class="combatant opponent-score">
+            <div class="combatant-label"><b id="boss-name"></b><span id="boss-health" class="health-text" aria-hidden="true"><span id="boss-current">180</span><span id="boss-total" class="health-total"></span></span></div>
+            <meter id="boss-hp" aria-label="Opponent health" min="0" max="180" value="180"></meter>
+            <div id="boss-ultimate-status" class="ultimate-status boss-ultimate">
+              <span>Ultimate</span>
+              <meter id="boss-ultimate-charge" aria-label="Opponent Ultimate charge" min="0" max="100" value="0"></meter>
+              <span id="boss-ultimate-value" aria-hidden="true">0%</span>
+            </div>
+            <div class="combatant-meta">
+              <span id="boss-weapon"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="playfield">
+        <canvas id="stage" width="480" height="270" aria-label="Fighting arena" aria-description="A and D to move, Space to jump, F to attack, G for Ultimate. On touch, drag to move, swipe up to jump, and tap to attack."></canvas>
+        <p id="boss-warning" role="status" hidden></p>
+        <div id="announce" class="announce" aria-live="polite" aria-atomic="true"></div>
+        <div id="menu" class="overlay" role="dialog" aria-modal="true" aria-labelledby="menu-title" aria-describedby="menu-label menu-detail" hidden>
+          <div class="dialog">
+            <p id="menu-label" class="eyebrow"></p>
+            <h2 id="menu-title"></h2>
+            <p id="menu-detail"></p>
+            <div class="dialog-actions">
+              <button id="primary" type="button" class="hot"></button>
+              <button id="choose" type="button">Change Fighter</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+</body>
+</html>

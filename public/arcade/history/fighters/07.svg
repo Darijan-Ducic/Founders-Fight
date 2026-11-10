@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 142 250" width="284" height="500">
+  <defs>
+    <linearGradient id="wool" x2=".91" y2=".22" gradientUnits="objectBoundingBox">
+      <stop stop-color="#807668"/>
+      <stop offset=".37" stop-color="#615a51"/>
+      <stop offset="1" stop-color="#353747"/>
+    </linearGradient>
+    <linearGradient id="trousers">
+      <stop stop-color="#4d4a4b"/>
+      <stop offset=".47" stop-color="#56535c"/>
+      <stop offset="1" stop-color="#262936"/>
+    </linearGradient>
+    <linearGradient id="skin" x2=".89" y2=".19" gradientUnits="objectBoundingBox">
+      <stop stop-color="#a16a55"/>
+      <stop offset=".49" stop-color="#dfab86"/>
+      <stop offset=".8" stop-color="#c28972"/>
+      <stop offset="1" stop-color="#935c53"/>
+    </linearGradient>
+    <linearGradient id="hair">
+      <stop stop-color="#181925"/>
+      <stop offset=".68" stop-color="#36303a"/>
+      <stop offset="1" stop-color="#4f3b3e"/>
+    </linearGradient>
+    <linearGradient id="boots" x2=".6" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#45424d"/>
+      <stop offset=".56" stop-color="#282935"/>
+      <stop offset="1" stop-color="#1a1a24"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#252330" stroke-width="2.2" stroke-linejoin="round">
+    <path fill="url(#trousers)" d="M41 131q21-9 50 2l9 50 3 36-17 8-11-19-12-42-9 22-15 32-17-6 6-35z"/>
+    <path fill="url(#boots)" d="m21 206 20 6-3 18 9 7 2 8-43 1-4-5 9-8z"/>
+    <path fill="url(#boots)" d="m82 214 21-4 8 18 16 8 5 7-3 4-44-1-4-6z"/>
+    <path fill="url(#wool)" d="M87 52q14 1 20 11l10 28 8 20-13 9-18-17-9-20z"/>
+    <path fill="url(#skin)" d="m111 108 12-2 12 7 4 10-5 8-11-1-9-6-4-9z"/>
+    <path fill="url(#wool)" d="M45 54 59 44l22 1 16 12 5 38 1 34-5 22-30-3-12 3-28-5 8-29 1-25-10-22z"/>
+    <path fill="url(#wool)" d="m42 54-14 4-13 20-4 24 9 16 16 10 11-10-13-14 2-17 14-17z"/>
+    <path fill="url(#skin)" d="m34 120 9-7 14 4 8 6-2 6-12 3-14-3-5-5z"/>
+    <path fill="url(#skin)" d="m61 34-3 15 15 12 15-12-6-15z"/>
+    <path fill="url(#skin)" transform="translate(76 50) scale(.85) translate(-76 -50)" d="M54 19 62 7l14-4 15 4 9 9 2 13 9 7-2 5-6 1 1 8-5 8-12 1-15-7-8-12-9-3z"/>
+    <path fill="url(#hair)" transform="translate(76 50) scale(.85) translate(-76 -50)" d="m55 37-4-16 4-10 10-8 11-2 16 2 10 7 1 10-10-2-8-6-3 8-9 9-5-3-3 9-6-2z"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m8 242 35-2m44 1 39 2" stroke="#746877" stroke-width="1.4"/>
+    <path d="m24 218 12 1-5 11m65-13 6 7-14 1m15 3 10 4" stroke="#645964" stroke-width="2"/>
+    <path d="m39 164-9 32m31-40-7 24-12 13m30-35 7 24 11 8m1-14 6 25" stroke="#90838a" opacity=".54" stroke-width="1.5"/>
+    <path d="m25 69-6 12-4 18 5 8 11 9m11-44-9 17m75-16 5 15 8 19" stroke="#b2a08a" opacity=".62" stroke-width="1.4"/>
+    <path d="m28 91-4 10 6 8m70-20 4 12 10 10" stroke="#363443" stroke-width="2.1"/>
+    <path d="m49 55 8 12 11-8m14-4 10 10 3-7m-28 5 5 15 2 56-4 11" stroke="#353343" stroke-width="2"/>
+    <path d="m49 81 15 3-2 12-12-1zm34 4 12-2 1 13-11 1zm-41 46 13 3m33 0 10-3" stroke="#a89987" opacity=".68" stroke-width="1.1"/>
+    <path d="m40 110 24 2m15 0 17-2" stroke="#34323a" stroke-width="4"/>
+    <path d="M66 110h11v5H66z" stroke="#ac9a7b" stroke-width="1.6"/>
+    <path d="m58 122-6 1m9 3-7 1m73-8 6 4m-8 0 6 4" stroke="#995a50" stroke-width="1.2"/>
+    <path transform="translate(76 50) scale(.85) translate(-76 -50)" d="m57 14 12-8 15-1m-24 12 15-8 13-2m-20 12 11-8 8-1" stroke="#7a5f55" opacity=".65" stroke-width="1.1"/>
+    <path transform="translate(76 50) scale(.85) translate(-76 -50)" d="m66 34 3-4 4 4-2 7m6 2 6 5 7 1m2-25 4-2 5 2m-14 0 4-2 4 2m-7 6 7 1m6-2 4 4" stroke="#8e574d" stroke-width="1.25"/>
+    <path transform="translate(76 50) scale(.85) translate(-76 -50)" d="m91 28 7 1m3-1 2 1m-7 19 7-1" stroke="#412f34" stroke-width="1.4"/>
+  </g>
+  <path fill="#33272d" transform="translate(76 50) scale(.85) translate(-76 -50)" d="m96 39 7-2 4 3-2 4-8-1z"/>
+  <path fill="#f7ce9b" transform="translate(76 50) scale(.85) translate(-76 -50)" d="m78 25 8-8 5-2-1 9-5 4zm-2 12 8-4 4 2-3 6zm26-3 5 2-3 1z" opacity=".52"/>
+  <path fill="#c1a086" d="M74 77h2v2h-2zm1 9h2v2h-2zm0 9h2v2h-2zm1 9h2v2h-2zm0 15h2v2h-2z"/>
+</svg>
