@@ -162,6 +162,7 @@ function drawBoss(c, duel, sprite, reducedMotion) {
   const {move} = boss;
   const wind = move && !boss.struck;
   const special = move === chapter.special;
+  const burst = move && move === chapter.finalPhase?.attack;
   const charge = wind ? clamp(boss.attack / boss.windup, 0, 1) : 0;
   const lastBeat = move?.beats?.[duel.strikeIndex - 1]?.at ?? 0;
   const strikeAge = boss.struck ? boss.attack - boss.windup - lastBeat : Infinity;
@@ -172,9 +173,9 @@ function drawBoss(c, duel, sprite, reducedMotion) {
   const poseScale = boss.bodyHeight / (chapter.stature * GRIP_UNITS_PER_METER);
   const body = bossBodyPose(boss, wind, strike);
   const walking = !reducedMotion && boss.moving && boss.y === 0 && boss.hit === 0 && boss.hp > 0;
-  if ((special || boss.intent) && wind) {
+  if ((special || burst || boss.intent) && wind) {
     c.strokeStyle = chapter.accent;
-    c.lineWidth = 2;
+    c.lineWidth = burst ? 3 : 2;
     c.globalAlpha = .35 + charge * .65;
     c.beginPath();
     c.ellipse(boss.x, floor, 24 + charge * 12, 5 + charge * 4, 0, 0, Math.PI * 2);
@@ -196,7 +197,7 @@ function drawBoss(c, duel, sprite, reducedMotion) {
   const torso = drawBossBody(c, art, height, walking ? boss.gait : undefined, true);
   c.translate(torso.x, torso.y);
   if (shield) paintBossShield(c, chapter.shieldGrip, poseScale, strike);
-  const holdingAim = boss.struck && special && duel.strikeIndex < (move.beats?.length ?? 1);
+  const holdingAim = boss.struck && duel.strikeIndex < (move?.beats?.length ?? 1);
   const aim = chapter.pattern === 'pistol' ?
     pistolAngle(move ? boss.pistolPitch : undefined, charge, strikeAge, body.angle, holdingAim) : undefined;
   paintBossWeapon(c, chapter, poseScale, charge, strikeAge, hands, aim);

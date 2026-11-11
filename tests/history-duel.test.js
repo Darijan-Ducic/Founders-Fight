@@ -73,7 +73,7 @@ test('Historical bosses reset to distinct health and use their weapon and specia
     const before = duel.player.hp;
     tickUntil(duel, () => duel.player.hp < before);
     assert.equal(duel.player.hp, before - chapter.special.damage);
-    assert.equal(startDuel({}, chapter).opponent.charge, 36);
+    assert.equal(startDuel({}, chapter).opponent.charge, chapter.tactics.startingCharge ?? 36);
   }
 });
 
@@ -198,9 +198,9 @@ test('Darius punishes a visible recovery at spear range', () => {
   assert.ok(boss.windup < duel.chapter.attack.windup);
 });
 
-test('Charlemagne follows an evaded swing with a second tell and a committed sweep', () => {
-  const chapter = chapters[3];
-  for (const evadeFollowUp of [false, true]) {
+test('Late swordsmen follow an evaded swing with a second tell and a committed sweep', () => {
+  for (const [chapter, evadeFollowUp] of [chapters[3], chapters[5]].flatMap(chapter =>
+    [false, true].map(evade => [chapter, evade]))) {
     const duel = startDuel({}, chapter);
     const {player, opponent: boss} = duel;
     duel.phase = 'fight';
@@ -324,10 +324,13 @@ test('Aimed arrows can be cleared by jumping near the projectile arrival', () =>
     duel.elapsed = 2.1;
     duel.tactics.jumps.push(.7, 1.7);
     duel.player.x = duel.opponent.x - 115;
+    if (jump) {
+      tickUntil(duel, () => duel.opponent.move === genghis.attack && duel.opponent.windup - duel.opponent.attack <= .07);
+      assert.ok(action(duel, 'jump'));
+    }
     tickUntil(duel, () => duel.volley.length > 0);
     assert.equal(duel.opponent.intent, 'high');
     assert.equal(duel.volley[0].y, 45);
-    if (jump) action(duel, 'jump');
     for (let i = 0; i < 65; i++) advance(duel, 0, step);
     assert.equal(duel.player.hp, duel.player.maxHp - (jump ? 0 : genghis.attack.damage));
   }
@@ -373,7 +376,7 @@ test('A pistol discharge hits a fighter inside the barrel reach at either wall',
   const pistol = chapters.at(-1);
   for (const facing of [-1, 1]) {
     for (const gap of [23, 36]) {
-      for (const move of [pistol.attack, pistol.special]) {
+      for (const move of [pistol.attack, pistol.finalPhase.attack, pistol.special]) {
         const duel = startDuel({}, pistol);
         const {player, opponent: boss} = duel;
         duel.phase = 'fight';
@@ -381,6 +384,7 @@ test('A pistol discharge hits a fighter inside the barrel reach at either wall',
         player.x = boss.x + gap * facing;
         const targetX = player.x;
         if (move === pistol.special) boss.charge = MAX_CHARGE;
+        if (move === pistol.finalPhase.attack) boss.hp = boss.maxHp / 2;
         tickUntil(duel, () => boss.struck);
         assert.equal(player.hp, player.maxHp - move.damage);
         assert.equal(duel.volley.length, 0);
@@ -390,6 +394,69 @@ test('A pistol discharge hits a fighter inside the barrel reach at either wall',
       }
     }
   }
+});
+
+test('The final boss switches to a double shot after finishing an attack at half health', () => {
+  const pistol = chapters.at(-1);
+  const duel = startDuel({}, pistol);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  player.x = boss.x - 130;
+  boss.charge = 0;
+  advance(duel, 0, step);
+  assert.equal(boss.move, pistol.attack);
+
+  boss.hp = boss.maxHp / 2;
+  tickUntil(duel, () => boss.struck);
+  assert.equal(boss.move, pistol.attack);
+  tickUntil(duel, () => boss.move?.beats?.length === 2);
+  assert.equal(boss.move, pistol.finalPhase.attack);
+  assert.equal(duel.strikeIndex, 0);
+});
+
+test('The final double shot keeps its aim and gives a reload opening', () => {
+  const pistol = chapters.at(-1);
+  const duel = startDuel({}, pistol);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  boss.x = 240;
+  boss.hp = boss.maxHp / 2;
+  player.x = boss.x - 130;
+
+  tickUntil(duel, () => duel.strikeIndex === 1);
+  const firstShot = duel.elapsed;
+  const facing = boss.facing;
+  player.x = boss.x + 36;
+  tickUntil(duel, () => duel.strikeIndex === 2);
+  assert.ok(duel.elapsed - firstShot >= .50);
+  assert.equal(boss.facing, facing);
+  assert.equal(duel.volley.at(-1).facing, facing);
+  assert.equal(player.hp, player.maxHp);
+  advance(duel, 0, .40);
+  assert.equal(boss.move, pistol.finalPhase.attack);
+  assert.equal(duel.strikeIndex, 2);
+});
+
+test('A single jump can clear the first raised round and still get caught by the second', () => {
+  const pistol = chapters.at(-1);
+  const duel = startDuel({}, pistol);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  duel.elapsed = 2.1;
+  duel.tactics.jumps.push(.7, 1.7);
+  boss.hp = boss.maxHp / 2;
+
+  tickUntil(duel, () => duel.volley.length === 1);
+  assert.equal(boss.intent, 'high');
+  const [first] = duel.volley;
+  const heightAtPlayer = first.launchY + (player.x - first.launchX) * first.vy / first.vx;
+  assert.ok(Math.abs(heightAtPlayer - 43) < 1e-7);
+  assert.ok(action(duel, 'jump'));
+  tickUntil(duel, () => first.x < player.x - 12);
+  assert.equal(player.hp, player.maxHp);
+  tickUntil(duel, () => player.hp < player.maxHp);
+  assert.equal(duel.strikeIndex, 2);
+  assert.equal(player.hp, player.maxHp - pistol.finalPhase.attack.damage);
 });
 
 test('A pistol impact lands on the line as it grazes an airborne fighter', () => {
