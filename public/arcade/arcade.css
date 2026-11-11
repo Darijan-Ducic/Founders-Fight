@@ -96,11 +96,27 @@ main.in-fight {
 
 .world-tour:has(> #game:not(.in-fight)) {
   --gold: var(--fight-yellow);
+  background-color: #141211;
+}
+
+.world-tour.selection-backdrop-ready:has(> #game:not(.in-fight)) {
   background:
     linear-gradient(#141211cc, #141211cc),
     linear-gradient(180deg, #10101070, #10101050 45%, #10101013 72%, #10101044),
     linear-gradient(90deg, #06091170, transparent 64%),
     url("./selection-manifesto.webp") center / cover no-repeat #141211;
+}
+
+.world-tour.selection-loading { background: #141211; }
+.world-tour.selection-loading #game { visibility: hidden; }
+#selection-status {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  color: var(--muted);
+  font: 700 12px var(--mono);
 }
 
 .world-tour #game:not(.in-fight) {
@@ -204,6 +220,8 @@ main.in-fight {
   isolation: isolate;
   display: flex;
   flex-direction: column;
+  --accent: #e9a977;
+  --portrait-tint: #53435a;
   background: #211f20;
   color: var(--ink);
   border: 1px solid var(--line);
@@ -214,13 +232,45 @@ main.in-fight {
   background: #2b2728;
   border-color: var(--accent);
 }
+.world-tour .card:nth-child(2) { --portrait-tint: #5c4147; }
+.world-tour .card:nth-child(3) { --portrait-tint: #3e4b60; }
+.world-tour .card:nth-child(4) { --portrait-tint: #594958; }
+.world-tour .card:nth-child(5) { --portrait-tint: #445655; }
+.world-tour .card:nth-child(6) { --portrait-tint: #5d4c42; }
+.world-tour .card:nth-child(7) { --portrait-tint: #454763; }
 .world-tour .card .fighter-portrait {
+  position: relative;
   display: block;
   width: 100%;
   aspect-ratio: .86;
+  overflow: hidden;
+  background: #19171e;
+}
+.fighter-portrait::before {
+  content: "";
+  position: absolute;
+  inset: 7px 7px 0;
+  clip-path: polygon(0 12px, 12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  background:
+    repeating-linear-gradient(0deg, #100d1940 0 1px, transparent 1px 5px),
+    linear-gradient(135deg, #e8bb891c 0 32%, transparent 32%),
+    radial-gradient(ellipse at 54% 31%, var(--portrait-tint), #292330 83%);
+  box-shadow: inset 0 0 0 1px #e8bb8938;
+}
+.fighter-portrait .portrait-art {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  background: var(--portrait-sheet) var(--portrait-position) 0 / 700% 100% no-repeat;
+  image-rendering: pixelated;
+}
+.world-tour .fighter-portrait canvas {
+  position: relative;
+  height: 100%;
   object-fit: cover;
-  object-position: center;
-  background: #252237;
 }
 .world-tour .card strong {
   display: grid;

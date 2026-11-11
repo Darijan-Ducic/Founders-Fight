@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111214">
   <title>Founders Fight</title>
+  <link rel="preload" as="image" href="./selection-portraits.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="./selection-manifesto.webp" fetchpriority="high">
   <link rel="stylesheet" href="./arcade.css">
-  <script type="module" src="./game.js"></script>
+  <script type="module" src="./selection.js"></script>
 </head>
-<body class="world-tour">
+<body class="world-tour selection-loading">
+<p id="selection-status" role="status" hidden>Loading fighters…</p>
+<noscript><p class="intro-copy">Enable JavaScript to play Founders Fight.</p></noscript>
 <main id="game">
   <header class="mast">
     <a href="./" class="wordmark"><span class="brand-mark" aria-hidden="true">F</span> Founders Fight</a>
@@ -22,7 +26,6 @@
     <div class="roster" id="roster" role="group" aria-labelledby="pick"></div>
     <p id="campaign-loading" role="status" hidden></p>
     <button id="campaign-retry" type="button" hidden>Retry loading</button>
-    <noscript><p class="intro-copy">Enable JavaScript to play Founders Fight.</p></noscript>
   </section>
 
   <section id="arena" aria-label="Historical campaign duel" hidden>

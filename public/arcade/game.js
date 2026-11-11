@@ -1,5 +1,6 @@
-import { loadFighterArt, portrait, roster } from './art.js';
+import { loadFighterArt, roster } from './art.js';
 import { canAttack, MAX_CHARGE, ROUND_SECONDS, weapons } from './duel.js';
+import { prepareBossArt } from './history/boss-art.js';
 import { action, advance, startDuel } from './history/duel.js';
 import { chapters, chapterNumber } from './history/roster.js';
 import { backdrop, loadStageArt, render } from './history/scene.js';
@@ -16,21 +17,10 @@ const choose = byId('choose');
 const announce = byId('announce');
 const context = stage.getContext('2d');
 const notice = byId('campaign-notice');
-const loading = byId('campaign-loading');
-const retryLoading = byId('campaign-retry');
 const playControls = [stage, arena.querySelector('.arena-top')];
 
-const ids = ['sam', 'dario', 'elon', 'ellison', 'page', 'bezos', 'buffett'];
-const profiles = Object.fromEntries(ids.map((id, index) => [id, roster[index]]));
-const selectionAccents = {
-  sam: '#87b5a2',
-  dario: '#d97757',
-  elon: '#a3adb9',
-  ellison: '#c74634',
-  page: '#6b9bf0',
-  bezos: '#ff9900',
-  buffett: '#8b9ec3',
-};
+const profiles = Object.fromEntries(roster.map(profile => [profile.id, profile]));
+const roundArt = [];
 const resultHold = .34;
 const number = value => String(value).padStart(2, '0');
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -48,11 +38,11 @@ const keys = {
 const held = new Map();
 const fingers = new Map();
 
-let selected = ids[0];
+let selected = roster[0].id;
 let chapterIndex = 0;
 let duel;
 let background;
-let roundArt = [];
+let bossSprite;
 let state = 'select';
 let paused = false;
 let feedbackAge = 0;
@@ -67,78 +57,34 @@ const setText = (element, value) => {
   if (element && element.textContent !== String(value)) element.textContent = value;
 };
 
-const cards = ids.map((id, index) => {
-  const profile = profiles[id];
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.disabled = true;
-  button.className = 'card';
-  button.style.setProperty('--accent', profile.accent);
-  const face = document.createElement('canvas');
-  face.className = 'fighter-portrait';
-  face.width = face.height = 112;
-  face.setAttribute('aria-hidden', 'true');
-  const name = document.createElement('strong');
-  name.textContent = profile.name;
-  button.append(face, name);
-  button.addEventListener('click', () => {
-    if (state !== 'select') return;
-    selected = id;
-    startRound(0);
+function loadRoundArt(index) {
+  roundArt[index] ??= prepareRoundArt(index).catch(error => {
+    roundArt[index] = undefined;
+    throw error;
   });
-  byId('roster').append(button);
-  portrait(face, profile, index);
-  return { id, button, face };
-});
-
-const selectionSheets = ['selection-backdrops.svg', 'selection-portraits.png'].map(file => {
-  const image = new Image();
-  image.src = new URL(file, import.meta.url).href;
-  return image;
-});
-Promise.all(selectionSheets.map(image => image.decode())).then(() => {
-  const size = selectionSheets[0].naturalHeight;
-  if (selectionSheets.some(image => image.naturalHeight !== size || image.naturalWidth !== size * cards.length)) return;
-  cards.forEach(({ id, button, face }, index) => {
-    face.width = face.height = size;
-    const faceContext = face.getContext('2d');
-    for (const image of selectionSheets) {
-      faceContext.drawImage(image, index * size, 0, size, size, 0, 0, size, size);
-    }
-    button.style.setProperty('--accent', selectionAccents[id]);
-  });
-}).catch(() => {
-  // Keep the procedural portraits if either selection sheet fails to decode.
-});
-
-loadFighterArt().then(() => {
-  if (state !== 'select') requestRender();
-}).catch(() => {
-  // Keep the procedural arena sprites if an atlas fails to decode.
-});
-async function loadCampaign() {
-  loading.hidden = false;
-  setText(loading, 'Loading historical opponents…');
-  retryLoading.hidden = true;
-  try {
-    const artwork = chapters.map(async (chapter, index) => {
-      const sprite = new Image();
-      const extension = index === chapters.length - 1 ? 'svg' : 'webp';
-      sprite.src = new URL(`./history/fighters/${chapterNumber(index)}.${extension}`, import.meta.url);
-      const [, plate] = await Promise.all([sprite.decode(), loadStageArt(chapter)]);
-      return { sprite, plate };
-    });
-    [roundArt] = await Promise.all([Promise.all(artwork), prepareStages()]);
-    for (const { button } of cards) button.disabled = false;
-    loading.hidden = true;
-  } catch {
-    setText(loading, 'The historical opponents could not load.');
-    retryLoading.hidden = false;
-  }
+  return roundArt[index];
 }
 
-retryLoading.addEventListener('click', loadCampaign);
-void loadCampaign();
+async function prepareRoundArt(index) {
+  const chapter = chapters[index];
+  const sprite = new Image();
+  const extension = chapter.pattern === 'pistol' ? 'svg' : 'webp';
+  sprite.src = new URL(`./history/fighters/${chapterNumber(index)}.${extension}`, import.meta.url).href;
+  const [, plate] = await Promise.all([sprite.decode(), loadStageArt(chapter)]);
+  if (!plate && chapter.pattern === 'saber') await prepareStages();
+  prepareBossArt(sprite, chapter);
+  return { sprite, plate };
+}
+
+export function prepareCampaign() {
+  return Promise.all([loadRoundArt(0), loadFighterArt().catch(() => {})]);
+}
+
+export async function startCampaign(id) {
+  const [art] = await prepareCampaign();
+  selected = id;
+  startRound(0, art);
+}
 
 function clearInput() {
   held.clear();
@@ -147,13 +93,13 @@ function clearInput() {
   pinch = undefined;
 }
 
-function startRound(index) {
+function startRound(index, { plate, sprite }) {
   const chapter = chapters[index];
-  const { plate } = roundArt[index];
   const entering = state === 'select';
   chapterIndex = index;
   duel = startDuel(profiles[selected], chapter, selected);
   background = plate ?? backdrop(chapter);
+  bossSprite = sprite;
   feedbackAge = 0;
   if (!motion.matches) duel.player.y = 114;
   if (entering) zoom = 1;
@@ -187,7 +133,9 @@ function startRound(index) {
   updateHud();
   if (entering) window.scrollTo(0, 0);
   focusStage();
+  render(context, duel, background, bossSprite, zoom, feedbackAge, motion.matches);
   requestRender();
+  if (index + 1 < chapters.length) void loadRoundArt(index + 1).catch(() => {});
 }
 
 function focusStage() {
@@ -208,7 +156,7 @@ function showRoster(message = '') {
   select.hidden = false;
   notice.hidden = !message;
   setText(notice, message);
-  cards.find(card => card.id === selected)?.button.focus();
+  byId('roster').querySelector(`[data-fighter="${selected}"]`)?.focus();
   window.scrollTo(0, 0);
 }
 
@@ -243,6 +191,22 @@ function togglePause() {
   }
 }
 
+async function startNextRound(index) {
+  if (primary.disabled) return;
+  primary.disabled = true;
+  setText(primary, 'Loading Round…');
+  try {
+    const art = await loadRoundArt(index);
+    startRound(index, art);
+  } catch {
+    setText(byId('menu-detail'), 'The next round could not load.');
+    setText(primary, 'Retry Round');
+  } finally {
+    primary.disabled = false;
+    if (state === 'result') primary.focus({ preventScroll: true });
+  }
+}
+
 function finishRound() {
   const { winner } = duel.result;
   const { chapter } = duel;
@@ -258,7 +222,7 @@ function finishRound() {
   const next = chapters[chapterIndex + 1];
   if (next) {
     showMenu(`Round ${round} of ${chapters.length}`, 'You win',
-      `Next round against ${next.name} at ${next.place}.`, 'Next Round', () => startRound(chapterIndex + 1), 'round-win');
+      `Next round against ${next.name} at ${next.place}.`, 'Next Round', () => void startNextRound(chapterIndex + 1), 'round-win');
   } else {
     showMenu(`Round ${round} of ${chapters.length} Cleared`, 'You Won the Game!',
       `${duel.player.fighter.name} defeated all ${chapters.length} historical opponents.`,
@@ -335,7 +299,7 @@ function frame(now) {
   if (!paused) update(dt);
   if (state === 'select') return;
   updateHud();
-  render(context, duel, background, roundArt[chapterIndex].sprite, zoom, feedbackAge, motion.matches);
+  render(context, duel, background, bossSprite, zoom, feedbackAge, motion.matches);
   if (!paused && state !== 'result') requestRender();
 }
 

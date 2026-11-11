@@ -92,7 +92,29 @@ try {
   const start = Date.now();
   await page.clock.install({ time: start });
   await page.clock.pauseAt(start + 1000);
-  await page.goto(url, { waitUntil: 'networkidle' });
+  let releaseBackdrop;
+  const backdropGate = new Promise(resolve => { releaseBackdrop = resolve; });
+  const arenaRequests = [];
+  page.on('request', request => {
+    if (/\/history\/(fighters|stages)\//.test(request.url())) arenaRequests.push(request.url());
+  });
+  await page.route('**/selection-manifesto.webp', async route => {
+    await backdropGate;
+    await route.continue();
+  });
+  const portraits = page.waitForResponse('**/selection-portraits.webp');
+  try {
+    await page.goto(url, { waitUntil: 'commit' });
+    const portraitResponse = await portraits;
+    assert.equal(await portraitResponse.finished(), null);
+    await page.locator('#game').waitFor({ state: 'attached' });
+    assert.equal(await page.locator('#game').isVisible(), false, 'the roster waits for its backdrop');
+    assert.deepEqual(arenaRequests, [], 'combat art waits until the roster can paint');
+  } finally {
+    releaseBackdrop();
+  }
+  await page.locator('#roster .card').first().waitFor();
+  await page.waitForLoadState('networkidle');
   assert.equal(await page.title(), 'Founders Fight');
   await assertFighterPantsStayJoined(page);
 
@@ -105,9 +127,10 @@ try {
   for (const card of await cards.all()) {
     const name = await card.locator('strong').textContent();
     assert.equal(await card.textContent(), name);
-    assert.ok(await card.locator('canvas.fighter-portrait').evaluate(canvas =>
-      canvas.getContext('2d').getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data[3] === 255), name);
+    assert.ok(await card.locator('.portrait-art').evaluate(art =>
+      art.getBoundingClientRect().width > 0 && getComputedStyle(art).backgroundImage.includes('selection-portraits.webp')), name);
     await card.click();
+    await page.locator('#arena').waitFor();
     assert.equal(await page.locator('#player-name').textContent(), name);
     const hp = await page.locator('#player-hp').evaluate(meter => meter.max);
     health.add(hp);
@@ -120,6 +143,7 @@ try {
   assert.equal(ultimates.size, 7);
   assert.equal(health.size, 7);
   await page.getByRole('button', { name: /Dario Amodei/ }).press('Enter');
+  await page.locator('#arena').waitFor();
   assert.equal(await page.locator('#stage').getAttribute('aria-label'), 'Duel in ' + chapters[0].place);
   assert.equal(await page.locator('#player-health').textContent(), `${loadouts.dario.maxHp} / ${loadouts.dario.maxHp}`);
   assert.equal(await page.locator('#boss-health').textContent(), `${chapters[0].maxHp} / ${chapters[0].maxHp}`);
@@ -210,6 +234,7 @@ try {
     await page.keyboard.press('Tab');
     assert.equal(await page.locator(':focus').getAttribute('id'), 'primary');
     await dialog.getByRole('button', { name: 'Next Round', exact: true }).click();
+    await dialog.waitFor({ state: 'hidden' });
   }
   await winRound();
   assert.equal(await page.locator('#boss-name').textContent(), 'Darius the Great');
@@ -234,6 +259,7 @@ try {
   assert.equal(await page.locator(':focus strong').textContent(), 'Dario Amodei');
 
   await page.getByRole('button', { name: /Elon Musk/ }).click();
+  await page.locator('#arena').waitFor();
   assert.equal(await page.locator('#round-number').textContent(), 'Round 1 / 7');
   assert.equal(await page.locator('#player-name').textContent(), 'Elon Musk');
   assert.equal(await page.locator('#boss-name').textContent(), 'Ramesses II');
@@ -250,6 +276,7 @@ try {
   await touch.clock.install();
   await touch.goto(url);
   await touch.getByRole('button', { name: /Elon Musk/ }).tap();
+  await touch.locator('#arena').waitFor();
   await touch.clock.runFor(3200);
   const session = await mobile.newCDPSession(touch);
   const bounds = await touch.locator('#stage').boundingBox();
@@ -289,6 +316,7 @@ try {
 
   await touch.getByRole('button', { name: 'Back to fighters' }).tap();
   await touch.getByRole('button', { name: /Larry Ellison/ }).tap();
+  await touch.locator('#arena').waitFor();
   await touch.clock.runFor(3200);
   await touch.evaluate(() => { window.__qaDuel.player.charge = 100; });
   await touch.clock.runFor(32);
