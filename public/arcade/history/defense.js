@@ -57,9 +57,8 @@ function visibleWindup(duel, reaction) {
 function chooseEvade(duel, away, space) {
   const {chapter, opponent: boss} = duel;
   const {jump, preferStep, reaction} = chapter.tactics;
-  const read = Math.max(.13, Math.min(.18, reaction));
-  const shot = incomingProjectile(duel, read);
-  const windup = visibleWindup(duel, read);
+  const shot = incomingProjectile(duel, reaction);
+  const windup = visibleWindup(duel, reaction);
   const threat = shot && (!windup || shot.time < windup.time) ? shot : windup;
   if (!threat) return;
 
@@ -91,6 +90,7 @@ export function stepBossDefense(duel, dt, bound) {
     if (done) {
       boss.evade = null;
       boss.recoverUntil = elapsed + .19;
+      boss.facing = Math.sign(player.x - boss.x) || boss.facing;
     } else if (boss.hit === 0) {
       drift(boss, dt, bound);
     }

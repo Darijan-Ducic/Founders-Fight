@@ -4,6 +4,7 @@ import { swordGripPose } from './sword-grip.js';
 export const GRIP_UNITS_PER_METER = 65;
 export const pistolSocket = [-4.7, -6.5];
 export const pistolMuzzle = {x: 20.17, y: -4.65};
+const pistolBreechX = -4.83;
 export const pistolReady = .37;
 export const pistolFlashTime = .065;
 
@@ -63,5 +64,6 @@ export function launchPistolRound(chapter, boss, pitch, speed) {
   const local = rotate(grip.x + muzzle.x, grip.y + muzzle.y, body.angle);
   const launchX = body.x + boss.facing * local.x;
   const launchY = FLOOR - body.y - local.y;
-  return {x: launchX, y: launchY, launchX, launchY, vx: boss.facing * speed * Math.cos(pitch), vy: -speed * Math.sin(pitch)};
+  const barrelTime = (pistolMuzzle.x - pistolBreechX) * scale / speed;
+  return {x: launchX, y: launchY, launchX, launchY, vx: boss.facing * speed * Math.cos(pitch), vy: -speed * Math.sin(pitch), barrelTime};
 }

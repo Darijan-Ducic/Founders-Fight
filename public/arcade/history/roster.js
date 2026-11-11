@@ -9,7 +9,7 @@ export const chapters = [
     stageArt: 'giza-dawn.webp',
     colors: ['#40284b', '#d18650', '#6f443d', '#7b594f'],
     pattern: 'hook', grip: [29, -53], speed: 69, maxHp: 180,
-    tactics: {reaction: .20, pressure: 1.28, jump: 230, evadeCooldown: 2.9, high: true},
+    tactics: {reaction: .18, pressure: 1.28, jump: 230, evadeCooldown: 2.8, high: true},
     attack: {reach: 55, windup: .57, recovery: .64, damage: 20, push: 6},
     special: {
       name: 'Sunhook', reach: 70, windup: .84, recovery: 1.02, damage: 23,
@@ -23,7 +23,7 @@ export const chapters = [
     stageArt: 'royal-terrace.webp',
     colors: ['#182842', '#557b89', '#324650', '#53516c'],
     pattern: 'spear', grip: [27, -55], supportGrip: [-6, -63], speed: 55, maxHp: 200,
-    tactics: {reaction: .19, pressure: 1.24, space: 54, high: true, jump: 235, evadeCooldown: 2.7, preferStep: true},
+    tactics: {reaction: .165, pressure: 1.24, space: 54, high: true, jump: 235, evadeCooldown: 2.65, preferStep: true},
     attack: {reach: 82, windup: .55, recovery: .44, damage: 23, push: 11},
     special: {
       name: 'Royal Skewer', reach: 133, windup: 1.02, recovery: 1.10, damage: 34,
@@ -36,7 +36,7 @@ export const chapters = [
     stageArt: 'forum-overlook.webp',
     colors: ['#332744', '#b45e60', '#443142', '#625063'],
     pattern: 'guard', grip: [28, -54], shieldGrip: [-6, -60], speed: 68, maxHp: 225,
-    tactics: {reaction: .17, pressure: 1.27, high: true, jump: 219, evadeCooldown: 3.1, preferStep: true},
+    tactics: {reaction: .15, pressure: 1.27, high: true, jump: 219, evadeCooldown: 2.55, preferStep: true},
     attack: {reach: 52, lunge: 17, windup: .51, recovery: .66, damage: 27, push: 15},
     special: {
       name: 'Shield Breaker', reach: 77, lunge: 29, windup: .85, recovery: 1.22, damage: 40,
@@ -50,8 +50,8 @@ export const chapters = [
     stageArt: 'vineyard-ramparts.webp',
     colors: ['#202b49', '#675878', '#34344b', '#555269'],
     pattern: 'slam', grip: [34, -57], speed: 50, maxHp: 250,
-    tactics: {reaction: .16, pressure: 1.43, high: true, jump: 223, evadeCooldown: 3.2, preferStep: true},
-    attack: {reach: 67, windup: .8, recovery: .67, damage: 30, push: 19, stun: .22},
+    tactics: {reaction: .135, pressure: 1.43, high: true, jump: 223, evadeCooldown: 2.4, preferStep: true},
+    attack: {reach: 67, windup: .74, recovery: .61, damage: 30, push: 19, stun: .22},
     special: {
       name: 'Joyeuse Quake', reach: 123, windup: 1.10, recovery: 1.28, damage: 44,
       projectile: wave, beats: [{at: 0}, {at: 0, reverse: true}],
@@ -64,7 +64,7 @@ export const chapters = [
     stageArt: 'steppe-muster.webp',
     colors: ['#233e4b', '#7a967e', '#354f46', '#4d5953'],
     pattern: 'bow', grip: [22, -53], supportGrip: [-13, -55], speed: 57, maxHp: 275,
-    tactics: {reaction: .12, pressure: 1.19, space: 92, high: true, jump: 246, evadeCooldown: 2.6},
+    tactics: {reaction: .12, pressure: 1.19, space: 92, high: true, jump: 246, evadeCooldown: 2.3},
     attack: {reach: 258, windup: .55, recovery: .47, damage: 34, projectile: arrow},
     special: {
       name: 'Steppe Volley', reach: 305, windup: .95, recovery: 1.07, damage: 48,
@@ -78,7 +78,7 @@ export const chapters = [
     stageArt: 'fontainebleau-court.webp',
     colors: ['#242142', '#826377', '#413449', '#575064'],
     pattern: 'saber', grip: [19.25, -50.75], speed: 62, maxHp: 300,
-    tactics: {reaction: .10, pressure: 1.45, space: 55, high: true, jump: 242, evadeCooldown: 2.7},
+    tactics: {reaction: .10, pressure: 1.45, space: 55, high: true, jump: 242, evadeCooldown: 2.2},
     attack: {reach: 88, lunge: 37, windup: .54, recovery: .44, damage: 38, push: 12},
     special: {
       name: 'Imperial Charge', reach: 169, lunge: 116, windup: 1.04, recovery: 1.15, damage: 52,
@@ -91,8 +91,8 @@ export const chapters = [
     stature: 1.75, evidence: 'Historical account estimate', accent: '#e68d74',
     colors: ['#171f2a', '#5a4141', '#332a33', '#494750'],
     pattern: 'pistol', grip: [25, -58], speed: 42, maxHp: 320,
-    tactics: {reaction: .09, pressure: 1.18, space: 105, high: true, jump: 233, evadeCooldown: 3, preferStep: true},
-    attack: {reach: 310, windup: .61, recovery: .46, damage: 42, projectile: round, push: 10},
+    tactics: {reaction: .085, pressure: 1.18, space: 105, high: true, jump: 233, evadeCooldown: 2.1, preferStep: true},
+    attack: {reach: 310, windup: .64, recovery: .62, damage: 42, projectile: round, push: 10},
     special: {
       name: 'Bunker Barrage', reach: 355, windup: .98, recovery: 1.30, damage: 56,
       projectile: round, beats: [{at: 0}, {at: .18}, {at: .36}, {at: .54}],

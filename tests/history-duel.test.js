@@ -167,6 +167,49 @@ test('A missed weapon strike can be countered after a reaction delay', () => {
   assert.ok(duel.opponent.windup >= .35 && duel.opponent.windup < napoleon.attack.windup);
 });
 
+test('A boss can punish a visible recovery after a landed attack', () => {
+  const duel = startDuel({}, chapters[1]);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  player.x = boss.x - 40;
+  boss.recoverUntil = .42;
+  assert.ok(action(duel, 'attack'));
+
+  tickUntil(duel, () => boss.move);
+  assert.equal(player.phase, 'recovery');
+  assert.ok(boss.hp < boss.maxHp);
+  assert.equal(boss.intent, 'counter');
+  assert.ok(boss.windup < duel.chapter.attack.windup);
+});
+
+test('Bosses can turn toward an early cross but commit their facing before striking', () => {
+  for (const chapter of chapters) {
+    for (const late of [false, true]) {
+      const duel = startDuel({}, chapter);
+      const {player, opponent: boss} = duel;
+      duel.phase = 'fight';
+      boss.x = 240;
+      player.x = boss.x - 40;
+      duel.tactics.nextRetreat = 2;
+      advance(duel, 0, step);
+      assert.equal(boss.move, chapter.attack, chapter.name);
+      if (late) advance(duel, 0, boss.windup - .12);
+      player.x = boss.x + 40;
+      if (late) {
+        tickUntil(duel, () => boss.struck);
+        assert.equal(boss.facing, -1, chapter.name);
+        assert.equal(player.hp, player.maxHp, chapter.name);
+      } else {
+        advance(duel, 0, chapter.tactics.reaction / 2);
+        assert.equal(boss.facing, -1, chapter.name);
+        advance(duel, 0, chapter.tactics.reaction / 2 + 2 * step);
+        assert.equal(boss.facing, 1, chapter.name);
+        assert.equal(boss.struck, false, chapter.name);
+      }
+    }
+  }
+});
+
 test('Genghis Khan opens a gap before shooting and stops backing away at the wall', () => {
   const genghis = chapters.find(chapter => chapter.pattern === 'bow');
   const duel = startDuel({}, genghis);
@@ -243,6 +286,29 @@ test('Pistol rounds leave the muzzle and keep their initial direction', () => {
   }
 });
 
+test('A pistol discharge hits a fighter inside the barrel reach at either wall', () => {
+  const pistol = chapters.at(-1);
+  for (const facing of [-1, 1]) {
+    for (const gap of [23, 36]) {
+      for (const move of [pistol.attack, pistol.special]) {
+        const duel = startDuel({}, pistol);
+        const {player, opponent: boss} = duel;
+        duel.phase = 'fight';
+        boss.x = facing === 1 ? 27 : 453;
+        player.x = boss.x + gap * facing;
+        const targetX = player.x;
+        if (move === pistol.special) boss.charge = MAX_CHARGE;
+        tickUntil(duel, () => boss.struck);
+        assert.equal(player.hp, player.maxHp - move.damage);
+        assert.equal(duel.volley.length, 0);
+        const impact = duel.sparks.find(spark => spark.kind === 'impact');
+        assert.equal(impact.facing, facing);
+        assert.ok(Math.abs(impact.x - targetX) <= DEFAULT_HURTBOX.radius + 3);
+      }
+    }
+  }
+});
+
 test('A pistol impact lands on the line as it grazes an airborne fighter', () => {
   const pistol = chapters.find(chapter => chapter.pattern === 'pistol');
   for (const facing of [-1, 1]) {
@@ -278,7 +344,8 @@ test('Pistol rounds stay on their line when the player jumps across the shooter'
     const {player, opponent: boss} = duel;
     duel.phase = 'fight';
     boss.x = facing === 1 ? 220 : 260;
-    player.x = boss.x + 70 * facing;
+    // Be above his shoulder by the discharge, clear of the barrel in front.
+    player.x = boss.x + 50 * facing;
     duel.tactics.nextRetreat = 2;
 
     const jumpLead = .26;
@@ -300,13 +367,15 @@ test('Pistol rounds stay on their line when the player jumps across the shooter'
   }
 });
 
-test('The historical ladder raises health and both damage values at every stage', () => {
+test('The historical ladder raises damage and health and quickens defense at every stage', () => {
   assert.deepEqual(chapters.map(chapter => chapter.pattern), ['hook', 'spear', 'guard', 'slam', 'bow', 'saber', 'pistol']);
   for (const [index, chapter] of chapters.slice(1).entries()) {
     const previous = chapters[index];
     assert.ok(chapter.maxHp > previous.maxHp, chapter.name);
     assert.ok(chapter.attack.damage > previous.attack.damage, chapter.name);
     assert.ok(chapter.special.damage > previous.special.damage, chapter.name);
+    assert.ok(chapter.tactics.reaction < previous.tactics.reaction, chapter.name);
+    assert.ok(chapter.tactics.evadeCooldown < previous.tactics.evadeCooldown, chapter.name);
   }
 });
 

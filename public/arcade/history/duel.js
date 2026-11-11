@@ -12,6 +12,7 @@ const maxX = 453;
 const habitWindow = 4.5;
 const epsilon = 1e-8;
 const ultimateCooldown = 5.4;
+const committedWindup = .23;
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const bound = x => clamp(x, minX, maxX);
 
@@ -27,7 +28,7 @@ export function startDuel(fighter, chapter, weaponId = 'sam') {
     countdown: 3, remaining: ROUND_SECONDS, time: 0, elapsed: 0, phase: 'countdown', result: null,
     volley: [], sparks: [], effects: [], projectiles: [], strikeIndex: 0,
     tactics: {jumps: [], attacks: [], whiffAt: -Infinity, nextHigh: 0, retreatUntil: 0, nextRetreat: 0,
-      nextEvade: 0, nextUltimate: 0},
+      nextEvade: 0, nextUltimate: 0, turnAt: 0},
   };
 }
 
@@ -87,6 +88,12 @@ function bossStrike(duel, move, beat) {
     if (projectile.kind === 'round') {
       boss.pistolPitch ??= aimPistol(chapter, boss, player.x, height, high);
       Object.assign(shot, launchPistolRound(chapter, boss, boss.pistolPitch, projectile.speed));
+      // At point-blank range the target can overlap the barrel at discharge.
+      const contact = pistolContactTime(player, shot, -shot.barrelTime, 0);
+      if (contact !== null) {
+        hitPistolRound(duel, shot, contact);
+        return;
+      }
     } else {
       shot.x = boss.x + facing * 18;
       shot.y = high ? 45 : height;
@@ -132,17 +139,28 @@ function retreat(duel, distance, rushed, dt) {
   return true;
 }
 
+function aimBossPistol(duel) {
+  const {opponent: boss, player, chapter} = duel;
+  const projectile = boss.move.projectile;
+  if (projectile?.kind === 'round') {
+    boss.pistolPitch = aimPistol(chapter, boss, player.x, projectile.height, boss.intent === 'high');
+  }
+}
+
 function startBossMove(duel, distance, direction, dt) {
   const {opponent: boss, player, chapter, tactics, elapsed} = duel;
   boss.facing = player.x < boss.x ? -1 : 1;
   const {reaction, pressure, high: readsJumps} = chapter.tactics;
   const rushed = repeatsAttacks(tactics, elapsed, reaction);
-  if (boss.hit > 0 || retreat(duel, distance, rushed, dt)) return;
+  const recovering = player.phase === 'recovery' && player.phaseDuration - player.phaseTime >= reaction;
+  const close = distance <= 50;
+  const punishRecovery = recovering && close;
+  if (boss.hit > 0 || (!punishRecovery && retreat(duel, distance, rushed, dt))) return;
   const special = boss.charge === MAX_CHARGE && elapsed >= tactics.nextUltimate
     && player.y < 18 && distance <= chapter.special.reach - 6;
   const move = special ? chapter.special : chapter.attack;
   if (distance > move.reach - 6) {
-    const pace = direction === boss.facing ? pressure : 1.12;
+    const pace = direction === boss.facing || recovering ? pressure : 1.12;
     boss.moving = true;
     boss.x = bound(boss.x + boss.facing * chapter.speed * pace * dt);
     return;
@@ -154,8 +172,8 @@ function startBossMove(duel, distance, direction, dt) {
   const high = !special && readsJumps && jumpHabit && elapsed >= tactics.nextHigh;
   const sinceWhiff = elapsed - tactics.whiffAt;
   const whiff = sinceWhiff >= reaction && sinceWhiff < .48;
-  const pressureCounter = rushed && player.attack > 0 && distance <= 50;
-  const counter = !special && !high && (whiff || pressureCounter);
+  const pressureCounter = rushed && player.attack > 0 && close;
+  const counter = !special && !high && (whiff || pressureCounter || punishRecovery);
   if (high) tactics.nextHigh = elapsed + 2.8;
   if (counter) tactics.whiffAt = -Infinity;
   if (special) {
@@ -164,13 +182,28 @@ function startBossMove(duel, distance, direction, dt) {
   }
   boss.move = move;
   boss.intent = high ? 'high' : counter ? 'counter' : null;
-  if (move.projectile?.kind === 'round') {
-    boss.pistolPitch = aimPistol(chapter, boss, player.x, move.projectile.height, high);
-  }
+  aimBossPistol(duel);
   boss.windup = counter ? Math.max(.35, move.windup - .18) : move.windup;
   boss.attack = 0;
   boss.struck = false;
   duel.strikeIndex = 0;
+  tactics.turnAt = 0;
+  tactics.retreatUntil = 0;
+}
+
+function turnDuringWindup(duel) {
+  const {opponent: boss, player, chapter, tactics, elapsed} = duel;
+  if (boss.move !== chapter.attack || boss.hit > 0 || boss.windup - boss.attack < committedWindup) return;
+  if ((player.x - boss.x) * boss.facing >= 0) {
+    tactics.turnAt = 0;
+    return;
+  }
+  tactics.turnAt ||= elapsed + chapter.tactics.reaction;
+  if (elapsed < tactics.turnAt) return;
+
+  boss.facing = -boss.facing;
+  tactics.turnAt = 0;
+  aimBossPistol(duel);
 }
 
 function updateBoss(duel, direction, dt) {
@@ -178,6 +211,7 @@ function updateBoss(duel, direction, dt) {
   if (!boss.move) startBossMove(duel, Math.abs(player.x - boss.x), direction, dt);
   if (!boss.move) return;
 
+  turnDuringWindup(duel);
   const move = boss.move;
   boss.attack += dt;
   const strike = boss.attack - boss.windup;
@@ -195,36 +229,45 @@ function updateBoss(duel, direction, dt) {
   }
 }
 
-function movePistolRound(duel, shot, dt) {
-  const {player} = duel;
+function pistolContactTime(player, shot, startTime, endTime) {
   const {x, y, vx, vy, facing} = shot;
-  const wallTime = ((facing > 0 ? 480 : 0) - x) / vx;
-  const floorTime = vy < 0 ? -y / vy : Infinity;
-  const end = Math.min(wallTime, floorTime);
-  if (end <= 0) return false;
-  const travel = Math.min(dt, end);
-
   const hurtbox = player.hurtbox ?? DEFAULT_HURTBOX;
   const roundRadius = 3;
   const width = hurtbox.radius + roundRadius;
   const forward = (player.x - x) * facing;
   const speed = Math.abs(vx);
   // Intersect the times spent inside the horizontal and vertical bounds of the hurtbox.
-  let enter = Math.max(0, (forward - width) / speed);
-  let exit = Math.min(travel, (forward + width) / speed);
+  let enter = Math.max(startTime, (forward - width) / speed);
+  let exit = Math.min(endTime, (forward + width) / speed);
   if (vy !== 0) {
     const bottom = (player.y + hurtbox.bottom - roundRadius - y) / vy;
     const top = (player.y + hurtbox.top + roundRadius - y) / vy;
     enter = Math.max(enter, Math.min(bottom, top));
     exit = Math.min(exit, Math.max(bottom, top));
   }
-  const contact = enter <= exit && (vy !== 0 || projectileOverlapsHeight(y - player.y, roundRadius, hurtbox));
-  const time = contact ? enter : travel;
+  return enter <= exit && (vy !== 0 || projectileOverlapsHeight(y - player.y, roundRadius, hurtbox)) ? enter : null;
+}
+
+function hitPistolRound(duel, shot, time = 0) {
+  const {player} = duel;
+  if (player.hit === 0) damage(duel, player, shot.damage, shot.facing,
+    shot.x + shot.vx * time, shot.y + shot.vy * time,
+    {push: shot.push, stun: shot.stun, heavy: shot.special});
+}
+
+function movePistolRound(duel, shot, dt) {
+  const {x, y, vx, vy, facing} = shot;
+  const wallTime = ((facing > 0 ? 480 : 0) - x) / vx;
+  const floorTime = vy < 0 ? -y / vy : Infinity;
+  const end = Math.min(wallTime, floorTime);
+  if (end <= 0) return false;
+  const travel = Math.min(dt, end);
+  const contact = pistolContactTime(duel.player, shot, 0, travel);
+  const time = contact ?? travel;
   shot.x = x + vx * time;
   shot.y = y + vy * time;
-  if (!contact) return travel < end;
-  if (player.hit === 0) damage(duel, player, shot.damage, facing, shot.x, shot.y,
-    {push: shot.push, stun: shot.stun, heavy: shot.special});
+  if (contact === null) return travel < end;
+  hitPistolRound(duel, shot);
   return false;
 }
 
