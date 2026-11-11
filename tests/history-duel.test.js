@@ -139,19 +139,21 @@ test('The round ends before a weapon that would land after the buzzer', () => {
   assert.equal(duel.opponent.hp, 18);
 });
 
-test('A visible jump habit triggers a high strike that grounded bait avoids', () => {
-  const darius = chapters.find(chapter => chapter.pattern === 'spear');
-  const duel = startDuel({}, darius);
+test('A boss waits for visible takeoff and reads a familiar jump faster', () => {
+  const chapter = chapters[2];
+  const duel = startDuel({}, chapter);
+  const {player, opponent: boss} = duel;
   duel.phase = 'fight';
-  action(duel, 'jump');
-  tickUntil(duel, () => duel.player.vy === 0);
-  action(duel, 'jump');
-  tickUntil(duel, () => duel.opponent.intent === 'high');
-  assert.equal(duel.opponent.move, darius.attack);
-  assert.ok(duel.opponent.attack < duel.opponent.windup);
-  assert.equal(duel.player.y, 0);
-  tickUntil(duel, () => duel.opponent.struck);
-  assert.equal(duel.player.hp, duel.player.maxHp);
+  duel.elapsed = 2;
+  duel.tactics.jumps.push(.5, 1.5);
+  player.x = boss.x - 36;
+  advance(duel, 0, chapter.attack.windup - .28);
+  assert.equal(boss.move, chapter.attack);
+  assert.equal(boss.intent, null);
+  assert.ok(action(duel, 'jump'));
+  tickUntil(duel, () => boss.struck);
+  assert.equal(boss.intent, 'high');
+  assert.equal(player.hp, player.maxHp - chapter.attack.damage);
 });
 
 test('A missed weapon strike can be countered after a reaction delay', () => {
@@ -210,6 +212,36 @@ test('Bosses can turn toward an early cross but commit their facing before strik
   }
 });
 
+test('Ramesses adjusts to an early jump but a late jump clears his committed swing', () => {
+  const chapter = chapters[0];
+  for (const late of [false, true]) {
+    const duel = startDuel({}, chapter);
+    const {player, opponent: boss} = duel;
+    duel.phase = 'fight';
+    player.x = boss.x - 38;
+    advance(duel, 0, late ? chapter.attack.windup - .15 : .04);
+    assert.ok(action(duel, 'jump'));
+
+    tickUntil(duel, () => boss.struck);
+    assert.equal(boss.intent, late ? null : 'high');
+    assert.equal(player.hp, player.maxHp - (late ? 0 : chapter.attack.damage));
+  }
+});
+
+test('A melee boss steps into reach as the player backs away during the windup', () => {
+  const duel = startDuel({}, chapters[0]);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  player.x = boss.x - 46;
+  advance(duel, 0, step);
+  assert.equal(boss.move, duel.chapter.attack);
+  const start = boss.x;
+  advance(duel, -1, .15);
+  assert.ok(boss.x < start - 6);
+  assert.equal(boss.moving, true);
+  assert.equal(boss.struck, false);
+});
+
 test('Genghis Khan opens a gap before shooting and stops backing away at the wall', () => {
   const genghis = chapters.find(chapter => chapter.pattern === 'bow');
   const duel = startDuel({}, genghis);
@@ -231,6 +263,20 @@ test('Genghis Khan opens a gap before shooting and stops backing away at the wal
   duel.player.x = duel.opponent.x - 65;
   advance(duel, 0, step);
   assert.equal(duel.opponent.move, genghis.attack);
+});
+
+test('A ranged boss gives ground while aiming when the player rushes in', () => {
+  const chapter = chapters[4];
+  const duel = startDuel({}, chapter);
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  duel.tactics.nextRetreat = 2;
+  player.x = boss.x - 48;
+  const start = boss.x;
+  advance(duel, 1, .16);
+  assert.equal(boss.move, chapter.attack);
+  assert.equal(boss.struck, false);
+  assert.ok(boss.x > start + 8);
 });
 
 test('Aimed arrows can be cleared by jumping near the projectile arrival', () => {
@@ -436,6 +482,21 @@ test('Every rival physically jumps over a visible incoming bolt, then leaves a l
     assert.ok(boss.recoverUntil > duel.elapsed);
     assert.equal(boss.move, null);
   }
+});
+
+test('A melee boss can close distance while jumping a visible bolt', () => {
+  const duel = startDuel({}, chapters[0], 'dario');
+  const boss = duel.opponent;
+  duel.phase = 'fight';
+  duel.elapsed = .3;
+  boss.x = 300;
+  putBoltInFlight(duel, 0);
+  duel.projectiles[0].x = boss.x - 76;
+  const start = boss.x;
+  advance(duel, 0, .26);
+  assert.equal(boss.evade?.kind, 'jump');
+  assert.ok(boss.x < start - 15);
+  assert.equal(boss.hp, boss.maxHp);
 });
 
 test('Ramesses can jump an Index Disc on its way out and get hit on its return', () => {

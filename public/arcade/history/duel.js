@@ -1,6 +1,6 @@
 import {
   buildCharge, controlArmedPlayer, createArmedPlayer, healthWinner, interruptWindup,
-  DEFAULT_HURTBOX, FLOOR, MAX_CHARGE, moveArmedPlayer, projectileOverlapsHeight, ROUND_SECONDS,
+  DEFAULT_HURTBOX, FLOOR, jumpHeight, MAX_CHARGE, moveArmedPlayer, projectileOverlapsHeight, ROUND_SECONDS,
   stepArmedAttack, UNITS_PER_METER,
 } from '../duel.js';
 import { aimPistol, launchPistolRound } from './boss-pose.js';
@@ -13,6 +13,8 @@ const habitWindow = 4.5;
 const epsilon = 1e-8;
 const ultimateCooldown = 5.4;
 const committedWindup = .23;
+const familiarJumpWindup = .17;
+const lowStrikeHeight = 24;
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const bound = x => clamp(x, minX, maxX);
 
@@ -109,7 +111,7 @@ function bossStrike(duel, move, beat) {
   flash(duel, boss.x, high ? 77 : 45, chapter.accent, {
     kind: 'slash', origin, facing: boss.facing, special, reach: reach - lunge,
   });
-  const inHeight = high ? player.y >= 22 : player.y < 24;
+  const inHeight = high ? player.y >= 22 : player.y < lowStrikeHeight;
   if (forward >= 0 && forward <= reach && inHeight) {
     damage(duel, player, amount, boss.facing, player.x - boss.facing * 6, high ? 76 : 48,
       {...move, ...beat, heavy: special});
@@ -147,10 +149,31 @@ function aimBossPistol(duel) {
   }
 }
 
+function hasJumpHabit(duel) {
+  return duel.elapsed - (duel.tactics.jumps.at(-2) ?? -Infinity) <= habitWindow;
+}
+
+function readJumpAtImpact(duel, move, gap, windup) {
+  const {player, chapter, tactics, elapsed} = duel;
+  const lastJump = tactics.jumps.at(-1) ?? -Infinity;
+  const reaction = chapter.tactics.reaction * (hasJumpHabit(duel) ? .75 : 1);
+  if (player.y <= 0 || elapsed - lastJump < reaction) return 0;
+
+  const {projectile} = move;
+  const muzzleOffset = projectile?.kind === 'round' ? 56 : 18;
+  const flight = projectile ? Math.max(0, gap - muzzleOffset) / projectile.speed : 0;
+  return jumpHeight(player.y, player.vy, windup + flight);
+}
+
+function canAimHigh(duel, move, height) {
+  return duel.chapter.tactics.high && duel.elapsed >= duel.tactics.nextHigh
+    && (move.projectile?.kind !== 'arrow' || height < 48);
+}
+
 function startBossMove(duel, distance, direction, dt) {
   const {opponent: boss, player, chapter, tactics, elapsed} = duel;
   boss.facing = player.x < boss.x ? -1 : 1;
-  const {reaction, pressure, high: readsJumps} = chapter.tactics;
+  const {reaction, pressure, evadeCooldown} = chapter.tactics;
   const rushed = repeatsAttacks(tactics, elapsed, reaction);
   const recovering = player.phase === 'recovery' && player.phaseDuration - player.phaseTime >= reaction;
   const close = distance <= 50;
@@ -166,15 +189,18 @@ function startBossMove(duel, distance, direction, dt) {
     return;
   }
 
-  const secondLastJump = tactics.jumps.at(-2) ?? -Infinity;
-  const lastJump = tactics.jumps.at(-1) ?? -Infinity;
-  const jumpHabit = elapsed - secondLastJump <= habitWindow && elapsed - lastJump >= reaction;
-  const high = !special && readsJumps && jumpHabit && elapsed >= tactics.nextHigh;
   const sinceWhiff = elapsed - tactics.whiffAt;
   const whiff = sinceWhiff >= reaction && sinceWhiff < .48;
   const pressureCounter = rushed && player.attack > 0 && close;
-  const counter = !special && !high && (whiff || pressureCounter || punishRecovery);
-  if (high) tactics.nextHigh = elapsed + 2.8;
+  const counter = !special && (whiff || pressureCounter || punishRecovery);
+  const windup = counter ? Math.max(.35, move.windup - .18) : move.windup;
+  const airborneAtImpact = !special ? readJumpAtImpact(duel, move, distance, windup) : 0;
+  const expectsJump = move.projectile && player.y === 0 && hasJumpHabit(duel)
+    && elapsed - (tactics.jumps.at(-1) ?? -Infinity) >= reaction;
+  const high = !special && (airborneAtImpact >= lowStrikeHeight || expectsJump)
+    && canAimHigh(duel, move, airborneAtImpact);
+  if (airborneAtImpact >= lowStrikeHeight && !high) return;
+  if (high) tactics.nextHigh = elapsed + evadeCooldown;
   if (counter) tactics.whiffAt = -Infinity;
   if (special) {
     boss.charge = 0;
@@ -183,7 +209,7 @@ function startBossMove(duel, distance, direction, dt) {
   boss.move = move;
   boss.intent = high ? 'high' : counter ? 'counter' : null;
   aimBossPistol(duel);
-  boss.windup = counter ? Math.max(.35, move.windup - .18) : move.windup;
+  boss.windup = windup;
   boss.attack = 0;
   boss.struck = false;
   duel.strikeIndex = 0;
@@ -191,19 +217,42 @@ function startBossMove(duel, distance, direction, dt) {
   tactics.retreatUntil = 0;
 }
 
-function turnDuringWindup(duel) {
+function adjustWindup(duel, direction, dt) {
   const {opponent: boss, player, chapter, tactics, elapsed} = duel;
-  if (boss.move !== chapter.attack || boss.hit > 0 || boss.windup - boss.attack < committedWindup) return;
-  if ((player.x - boss.x) * boss.facing >= 0) {
-    tactics.turnAt = 0;
-    return;
-  }
-  tactics.turnAt ||= elapsed + chapter.tactics.reaction;
-  if (elapsed < tactics.turnAt) return;
+  const lead = boss.windup - boss.attack;
+  const canTurn = lead >= committedWindup;
+  if (boss.move !== chapter.attack || boss.hit > 0
+      || (!canTurn && (lead < familiarJumpWindup || !hasJumpHabit(duel)))) return;
 
-  boss.facing = -boss.facing;
+  const targetSide = Math.sign(player.x - boss.x) || boss.facing;
+  const turned = targetSide !== boss.facing;
+  if (turned) {
+    if (!canTurn) return;
+    tactics.turnAt ||= elapsed + chapter.tactics.reaction;
+    if (elapsed < tactics.turnAt) return;
+    boss.facing = targetSide;
+  }
   tactics.turnAt = 0;
-  aimBossPistol(duel);
+  const gap = Math.abs(player.x - boss.x);
+  const height = readJumpAtImpact(duel, boss.move, gap, lead);
+  const lift = boss.intent !== 'high' && gap <= boss.move.reach && height >= lowStrikeHeight
+    && canAimHigh(duel, boss.move, height);
+  if (lift) {
+    boss.intent = 'high';
+    tactics.nextHigh = elapsed + chapter.tactics.evadeCooldown;
+  }
+  if (turned || lift) aimBossPistol(duel);
+
+  if (!canTurn) return;
+  let spacing = Math.max(0, gap - boss.move.reach * .78);
+  if (boss.move.projectile) {
+    const preferred = (chapter.tactics.space ?? 0) * .72;
+    spacing = direction === -boss.facing ? Math.min(0, gap - preferred) : 0;
+  }
+  const travel = clamp(spacing, -chapter.speed * dt, chapter.speed * dt);
+  const x = bound(boss.x + boss.facing * travel);
+  boss.moving = x !== boss.x;
+  boss.x = x;
 }
 
 function updateBoss(duel, direction, dt) {
@@ -211,7 +260,7 @@ function updateBoss(duel, direction, dt) {
   if (!boss.move) startBossMove(duel, Math.abs(player.x - boss.x), direction, dt);
   if (!boss.move) return;
 
-  turnDuringWindup(duel);
+  adjustWindup(duel, direction, dt);
   const move = boss.move;
   boss.attack += dt;
   const strike = boss.attack - boss.windup;

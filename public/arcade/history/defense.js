@@ -18,7 +18,7 @@ function incomingProjectile(duel, reaction) {
     if (time <= 0 || time > Math.min(readWindow, shot.time)) continue;
     const height = FLOOR - projectileYAfter(shot, time) - boss.y;
     if (!projectileOverlapsHeight(height, shot.radius, hurtbox)) continue;
-    if (!nearest || time < nearest.time) nearest = {time, lift: height + shot.radius - hurtbox.bottom + 1};
+    if (!nearest || time < nearest.time) nearest = {time, lift: height + shot.radius - hurtbox.bottom + 1, shot};
   }
   return nearest;
 }
@@ -55,28 +55,37 @@ function visibleWindup(duel, reaction) {
 }
 
 function chooseEvade(duel, away, space) {
-  const {chapter, opponent: boss} = duel;
+  const {chapter, player, opponent: boss} = duel;
   const {jump, preferStep, reaction} = chapter.tactics;
   const shot = incomingProjectile(duel, reaction);
   const windup = visibleWindup(duel, reaction);
   const threat = shot && (!windup || shot.time < windup.time) ? shot : windup;
   if (!threat) return;
 
-  const {time, lift, step} = threat;
+  const {time, lift, step, shot: bolt} = threat;
   const jumpClearance = jumpHeight(0, jump, time);
   const canJump = jumpClearance > lift;
   const canStep = step !== undefined && Math.min(space, stepSpeed * Math.min(time, stepDuration)) >= step;
   if (canStep && (preferStep || !canJump)) return {kind: 'step', direction: away, speed: stepSpeed};
   if (canJump) {
-    // Keep a projectile's predicted crossing time. Vault away from weapon swings when there is room.
+    const speed = Math.min(112, chapter.speed + 23);
+    // A forward leap reaches a direct bolt sooner. Check clearance at that earlier crossing.
+    if (bolt && !bolt.returnSpeed && !chapter.attack.projectile && Math.sign(bolt.vx) === away
+        && Math.abs(player.x - boss.x) > chapter.attack.reach + 30) {
+      const boltSpeed = Math.abs(bolt.vx);
+      const crossing = time * boltSpeed / (boltSpeed + speed);
+      if (jumpHeight(0, jump, crossing) > lift + 3) return {kind: 'jump', direction: -away, speed, approach: true};
+    }
     const direction = step === undefined ? 0 : space > 30 ? away : -away;
-    return {kind: 'jump', direction, speed: Math.min(103, chapter.speed + 23)};
+    return {kind: 'jump', direction, speed};
   }
 }
 
-function drift(boss, dt, bound) {
-  const {direction, speed} = boss.evade;
-  const x = bound(boss.x + direction * speed * dt);
+function drift(duel, dt, bound) {
+  const {opponent: boss, player} = duel;
+  const {direction, speed, approach} = boss.evade;
+  const room = approach ? Math.max(0, (player.x - boss.x) * direction - 30) : Infinity;
+  const x = bound(boss.x + direction * Math.min(room, speed * dt));
   boss.moving = x !== boss.x;
   boss.x = x;
 }
@@ -92,7 +101,7 @@ export function stepBossDefense(duel, dt, bound) {
       boss.recoverUntil = elapsed + .19;
       boss.facing = Math.sign(player.x - boss.x) || boss.facing;
     } else if (boss.hit === 0) {
-      drift(boss, dt, bound);
+      drift(duel, dt, bound);
     }
     return true;
   }
@@ -116,7 +125,7 @@ export function stepBossDefense(duel, dt, bound) {
     boss.vy = chapter.tactics.jump;
     moveJump(boss, dt);
   }
-  drift(boss, dt, bound);
+  drift(duel, dt, bound);
   duel.strikeIndex = 0;
   tactics.retreatUntil = 0;
   tactics.nextEvade = elapsed + chapter.tactics.evadeCooldown;
