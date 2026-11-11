@@ -45,8 +45,8 @@ async function assertArenaFits(page, viewport) {
 
 function playerState(page) {
   return page.evaluate(() => {
-    const { x, y, phase, ultimate } = window.__qaDuel.player;
-    return { x, y, phase, ultimate };
+    const { x, y, phase, ultimate, charge } = window.__qaDuel.player;
+    return { x, y, phase, ultimate, charge };
   });
 }
 
@@ -89,7 +89,9 @@ try {
   const page = await desktop.newPage();
   observe(page);
   await trackDuel(page);
-  await page.clock.install();
+  const start = Date.now();
+  await page.clock.install({ time: start });
+  await page.clock.pauseAt(start + 1000);
   await page.goto(url, { waitUntil: 'networkidle' });
   assert.equal(await page.title(), 'Founders Fight');
   await assertFighterPantsStayJoined(page);
@@ -179,10 +181,10 @@ try {
   assert.ok(rivalJumped, 'Ramesses jumps during a real fight');
   assert.equal(await ultimate.getAttribute('aria-disabled'), 'false');
   await page.keyboard.press('g');
-  await page.clock.runFor(180);
-  assert.ok((await playerState(page)).ultimate);
-  assert.ok((await page.locator('#ultimate-charge').evaluate(meter => meter.value)) < 10);
-  await page.clock.runFor(510);
+  const activated = await playerState(page);
+  assert.ok(activated.ultimate);
+  assert.equal(activated.charge, 0);
+  await page.clock.runFor(690);
   assert.ok(await page.evaluate(() => window.__qaDuel.effects.some(effect => effect.type === 'ultimate')));
   await page.clock.runFor(940);
 
@@ -222,10 +224,11 @@ try {
   for (let step = 0; step < 48 && !(await page.locator('#select').isVisible()); step++) {
     await page.clock.runFor(500);
     if (await page.locator('#boss-ultimate-status').getAttribute('data-state') === 'casting') {
-      rivalCast ||= (await page.locator('#boss-warning').textContent()).includes('Ultimate incoming');
+      rivalCast = true;
+      assert.equal(await page.locator('.playfield').getByText(chapters[1].special.name).count(), 0);
     }
   }
-  assert.ok(rivalCast, 'Darius charges, telegraphs and casts his Ultimate');
+  assert.ok(rivalCast, 'Darius charges and casts his Ultimate');
   assert.equal(await page.locator('#select').isVisible(), true);
   assert.match(await page.locator('#campaign-notice').textContent(), /Defeated by Darius the Great in round 2/);
   assert.equal(await page.locator(':focus strong').textContent(), 'Dario Amodei');

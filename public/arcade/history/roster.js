@@ -82,7 +82,7 @@ export const chapters = [
     attack: {reach: 88, lunge: 37, windup: .54, recovery: .44, damage: 38, push: 12},
     special: {
       name: 'Imperial Charge', reach: 169, lunge: 116, windup: 1.04, recovery: 1.15, damage: 52,
-      beats: [{at: 0}, {at: .68, reach: 58, lunge: 0, warning: 'FOLLOW-UP SLASH · GET BEHIND'}],
+      beats: [{at: 0}, {at: .68, reach: 58, lunge: 0}],
       cue: 'Jump across the charge. The follow-up slash catches landings in front.',
     },
   },

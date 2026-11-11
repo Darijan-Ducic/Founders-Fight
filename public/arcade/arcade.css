@@ -574,18 +574,3 @@ main.in-fight {
   color: var(--gold);
 }
 .world-tour #campaign-retry { margin-top: 8px; }
-.world-tour #boss-warning {
-  position: absolute;
-  inset: max(8px, 2.5%) 0 auto;
-  width: fit-content;
-  max-width: calc(100% - 20px);
-  margin: 0 auto;
-  padding: 5px 9px;
-  border: 1px solid var(--stage-accent);
-  background: #1e181bea;
-  color: var(--stage-accent);
-  text-align: center;
-  text-transform: uppercase;
-  font: 700 clamp(9px, 1.4vw, 13px)/1.15 var(--mono);
-  pointer-events: none;
-}

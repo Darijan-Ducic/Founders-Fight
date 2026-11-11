@@ -18,7 +18,6 @@ const context = stage.getContext('2d');
 const notice = byId('campaign-notice');
 const loading = byId('campaign-loading');
 const retryLoading = byId('campaign-retry');
-const warning = byId('boss-warning');
 const playControls = [stage, arena.querySelector('.arena-top')];
 
 const ids = ['sam', 'dario', 'elon', 'ellison', 'page', 'bezos', 'buffett'];
@@ -267,16 +266,6 @@ function finishRound() {
   }
 }
 
-function incomingAttack() {
-  const { opponent, strikeIndex } = duel;
-  const { move } = opponent;
-  if (state !== 'fight' || paused || !move) return '';
-  if (opponent.struck) return move.beats?.[strikeIndex]?.warning ?? '';
-  if (move.name) return move.name + ' · Ultimate incoming';
-  if (opponent.intent === 'high') return move.projectile ? 'Aimed shot · Jump late' : 'High strike · Stay low';
-  return opponent.intent === 'counter' ? 'Counter incoming' : '';
-}
-
 function updateHud() {
   const { player, opponent, remaining } = duel;
   const hp = Math.ceil(player.hp);
@@ -286,9 +275,6 @@ function updateHud() {
   if (hud['boss-hp'].value !== rivalHp) hud['boss-hp'].value = rivalHp;
   setText(hud['player-current'], hp);
   setText(hud['boss-current'], rivalHp);
-  const cue = incomingAttack();
-  setText(warning, cue);
-  warning.hidden = !cue;
 
   const ready = state === 'fight' && !paused && canAttack(duel, player);
   const charge = Math.floor(player.charge);
