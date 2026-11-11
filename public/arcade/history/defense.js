@@ -98,7 +98,7 @@ export function stepBossDefense(duel, dt, bound) {
     const done = kind === 'jump' ? boss.y === 0 && boss.vy === 0 : elapsed >= until || boss.hit > 0;
     if (done) {
       boss.evade = null;
-      boss.recoverUntil = elapsed + .19;
+      boss.recoverUntil = elapsed + Math.max(.12, chapter.tactics.reaction + .03);
       boss.facing = Math.sign(player.x - boss.x) || boss.facing;
     } else if (boss.hit === 0) {
       drift(duel, dt, bound);

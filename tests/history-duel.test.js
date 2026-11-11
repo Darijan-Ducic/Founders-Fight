@@ -184,6 +184,43 @@ test('A boss can punish a visible recovery after a landed attack', () => {
   assert.ok(boss.windup < duel.chapter.attack.windup);
 });
 
+test('Darius punishes a visible recovery at spear range', () => {
+  const duel = startDuel({}, chapters[1], 'dario');
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  player.x = boss.x - 69;
+  player.phase = 'recovery';
+  player.phaseDuration = .49;
+  player.phaseTime = .25;
+  advance(duel, 0, step);
+
+  assert.equal(boss.intent, 'counter');
+  assert.ok(boss.windup < duel.chapter.attack.windup);
+});
+
+test('Charlemagne follows an evaded swing with a second tell and a committed sweep', () => {
+  const chapter = chapters[3];
+  for (const evadeFollowUp of [false, true]) {
+    const duel = startDuel({}, chapter);
+    const {player, opponent: boss} = duel;
+    duel.phase = 'fight';
+    player.x = boss.x - 36;
+    advance(duel, 0, chapter.attack.windup - .15);
+    assert.ok(action(duel, 'jump'));
+    tickUntil(duel, () => boss.struck);
+    assert.equal(player.hp, player.maxHp);
+
+    const firstStrike = duel.elapsed;
+    tickUntil(duel, () => boss.move === chapter.followUp && !boss.struck);
+    assert.equal(boss.intent, 'follow-up');
+    assert.ok(duel.elapsed >= firstStrike + .13);
+    assert.ok(boss.windup - boss.attack >= .4);
+    if (evadeFollowUp) player.x = boss.x + 36;
+    tickUntil(duel, () => boss.struck);
+    assert.equal(player.hp, player.maxHp - (evadeFollowUp ? 0 : chapter.followUp.damage));
+  }
+});
+
 test('Bosses can turn toward an early cross but commit their facing before striking', () => {
   for (const chapter of chapters) {
     for (const late of [false, true]) {

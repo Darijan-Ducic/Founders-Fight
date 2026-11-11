@@ -12,6 +12,8 @@ const maxX = 453;
 const habitWindow = 4.5;
 const epsilon = 1e-8;
 const ultimateCooldown = 5.4;
+const followUpDelay = .15;
+const followUpCooldown = 2.55;
 const committedWindup = .23;
 const familiarJumpWindup = .17;
 const lowStrikeHeight = 24;
@@ -23,14 +25,15 @@ export function startDuel(fighter, chapter, weaponId = 'sam') {
   const bodyHeight = chapter.stature * UNITS_PER_METER;
   const hurtbox = {...DEFAULT_HURTBOX, top: bodyHeight * .68};
   const opponent = {x: 365, facing: -1, y: 0, vy: 0, hp: maxHp, maxHp, bodyHeight, hurtbox, hit: 0, recoil: 0,
-    impactFacing: 0, attack: 0, struck: false, moving: false, gait: 0, charge: 36, evade: null, recoverUntil: 0};
+    impactFacing: 0, attack: 0, struck: false, moving: false, gait: 0, charge: 36, evade: null, recoverUntil: 0,
+    followUpAt: 0};
   return {
     chapter, player: createArmedPlayer(fighter, weaponId, 116),
     opponent,
     countdown: 3, remaining: ROUND_SECONDS, time: 0, elapsed: 0, phase: 'countdown', result: null,
     volley: [], sparks: [], effects: [], projectiles: [], strikeIndex: 0,
     tactics: {jumps: [], attacks: [], whiffAt: -Infinity, nextHigh: 0, retreatUntil: 0, nextRetreat: 0,
-      nextEvade: 0, nextUltimate: 0, turnAt: 0},
+      nextEvade: 0, nextUltimate: 0, nextFollowUp: 0, turnAt: 0},
   };
 }
 
@@ -112,10 +115,12 @@ function bossStrike(duel, move, beat) {
     kind: 'slash', origin, facing: boss.facing, special, reach: reach - lunge,
   });
   const inHeight = high ? player.y >= 22 : player.y < lowStrikeHeight;
-  if (forward >= 0 && forward <= reach && inHeight) {
+  const inRange = forward >= 0 && forward <= reach;
+  if (inRange && inHeight) {
     damage(duel, player, amount, boss.facing, player.x - boss.facing * 6, high ? 76 : 48,
       {...move, ...beat, heavy: special});
   }
+  return inRange && !high && !inHeight;
 }
 
 function repeatsAttacks(tactics, elapsed, reaction) {
@@ -170,20 +175,34 @@ function canAimHigh(duel, move, height) {
     && (move.projectile?.kind !== 'arrow' || height < 48);
 }
 
+function beginBossMove(duel, move, intent, windup = move.windup) {
+  const {opponent: boss, tactics} = duel;
+  boss.move = move;
+  boss.intent = intent;
+  aimBossPistol(duel);
+  boss.windup = windup;
+  boss.attack = 0;
+  boss.struck = false;
+  boss.followUpAt = 0;
+  duel.strikeIndex = 0;
+  tactics.turnAt = 0;
+  tactics.retreatUntil = 0;
+}
+
 function startBossMove(duel, distance, direction, dt) {
   const {opponent: boss, player, chapter, tactics, elapsed} = duel;
   boss.facing = player.x < boss.x ? -1 : 1;
   const {reaction, pressure, evadeCooldown} = chapter.tactics;
   const rushed = repeatsAttacks(tactics, elapsed, reaction);
   const recovering = player.phase === 'recovery' && player.phaseDuration - player.phaseTime >= reaction;
-  const close = distance <= 50;
-  const punishRecovery = recovering && close;
+  const withinReach = distance <= chapter.attack.reach - 6;
+  const punishRecovery = recovering && withinReach;
   if (boss.hit > 0 || (!punishRecovery && retreat(duel, distance, rushed, dt))) return;
   const special = boss.charge === MAX_CHARGE && elapsed >= tactics.nextUltimate
     && player.y < 18 && distance <= chapter.special.reach - 6;
   const move = special ? chapter.special : chapter.attack;
   if (distance > move.reach - 6) {
-    const pace = direction === boss.facing || recovering ? pressure : 1.12;
+    const pace = direction === boss.facing || recovering ? pressure : 1.18;
     boss.moving = true;
     boss.x = bound(boss.x + boss.facing * chapter.speed * pace * dt);
     return;
@@ -191,7 +210,7 @@ function startBossMove(duel, distance, direction, dt) {
 
   const sinceWhiff = elapsed - tactics.whiffAt;
   const whiff = sinceWhiff >= reaction && sinceWhiff < .48;
-  const pressureCounter = rushed && player.attack > 0 && close;
+  const pressureCounter = rushed && player.attack > 0 && withinReach;
   const counter = !special && (whiff || pressureCounter || punishRecovery);
   const windup = counter ? Math.max(.35, move.windup - .18) : move.windup;
   const airborneAtImpact = !special ? readJumpAtImpact(duel, move, distance, windup) : 0;
@@ -206,15 +225,7 @@ function startBossMove(duel, distance, direction, dt) {
     boss.charge = 0;
     tactics.nextUltimate = elapsed + ultimateCooldown;
   }
-  boss.move = move;
-  boss.intent = high ? 'high' : counter ? 'counter' : null;
-  aimBossPistol(duel);
-  boss.windup = windup;
-  boss.attack = 0;
-  boss.struck = false;
-  duel.strikeIndex = 0;
-  tactics.turnAt = 0;
-  tactics.retreatUntil = 0;
+  beginBossMove(duel, move, high ? 'high' : counter ? 'counter' : null, windup);
 }
 
 function adjustWindup(duel, direction, dt) {
@@ -255,19 +266,34 @@ function adjustWindup(duel, direction, dt) {
   boss.x = x;
 }
 
+function startFollowUp(duel) {
+  const {opponent: boss, player, chapter, tactics, elapsed} = duel;
+  if (!boss.followUpAt || elapsed < boss.followUpAt) return;
+  boss.followUpAt = 0;
+  const forward = (player.x - boss.x) * boss.facing;
+  if (boss.hit > 0 || forward < 0 || forward > chapter.followUp.reach) return;
+
+  beginBossMove(duel, chapter.followUp, 'follow-up');
+  tactics.nextFollowUp = elapsed + followUpCooldown;
+}
+
 function updateBoss(duel, direction, dt) {
-  const {opponent: boss, player} = duel;
+  const {opponent: boss, player, chapter, tactics, elapsed} = duel;
   if (!boss.move) startBossMove(duel, Math.abs(player.x - boss.x), direction, dt);
   if (!boss.move) return;
 
+  startFollowUp(duel);
   adjustWindup(duel, direction, dt);
   const move = boss.move;
   boss.attack += dt;
   const strike = boss.attack - boss.windup;
   const beats = beatsFor(move);
   while (beats[duel.strikeIndex] && strike >= beats[duel.strikeIndex].at && player.hp > 0) {
-    bossStrike(duel, move, beats[duel.strikeIndex++]);
+    const jumped = bossStrike(duel, move, beats[duel.strikeIndex++]);
     boss.struck = true;
+    if (jumped && move === chapter.attack && chapter.followUp && elapsed >= tactics.nextFollowUp) {
+      boss.followUpAt = elapsed + followUpDelay;
+    }
   }
   if (strike >= beats.at(-1).at + move.recovery) {
     if (move === duel.chapter.attack) buildCharge(boss, 12);
