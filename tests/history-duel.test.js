@@ -221,6 +221,49 @@ test('Late swordsmen follow an evaded swing with a second tell and a committed s
   }
 });
 
+test('The founder turns on the first step across the boss in every attack phase', () => {
+  for (const facing of [-1, 1]) {
+    for (const phase of ['ready', 'windup', 'recovery']) {
+      const duel = startDuel({}, chapters[0]);
+      const {player, opponent: boss} = duel;
+      duel.phase = 'fight';
+      boss.x = 240;
+      boss.recoverUntil = 3;
+      player.x = boss.x - facing * 80;
+      player.facing = facing;
+      if (phase === 'recovery') {
+        assert.ok(action(duel, 'attack'));
+        tickUntil(duel, () => player.phase === 'recovery');
+      }
+      player.x = boss.x - facing * .25;
+      player.y = 44;
+      if (phase === 'windup') assert.ok(action(duel, 'attack'));
+
+      advance(duel, facing, step);
+      assert.ok((player.x - boss.x) * facing > 0);
+      assert.equal(player.phase, phase);
+      assert.equal(player.facing, -facing, phase);
+    }
+  }
+});
+
+test('A founder finishes winding up toward a boss who has jumped across', () => {
+  const duel = startDuel({}, chapters[0], 'dario');
+  const {player, opponent: boss} = duel;
+  duel.phase = 'fight';
+  player.x = 240;
+  boss.x = player.x + .25;
+  boss.y = 45;
+  boss.evade = { kind: 'jump', direction: -1, speed: 100 };
+  assert.ok(action(duel, 'attack'));
+
+  advance(duel, 0, step);
+  assert.ok(boss.x < player.x);
+  assert.equal(player.facing, -1);
+  tickUntil(duel, () => duel.projectiles.length > 0);
+  assert.ok(duel.projectiles[0].vx < 0);
+});
+
 test('Bosses can turn toward an early cross but commit their facing before striking', () => {
   for (const chapter of chapters) {
     for (const late of [false, true]) {

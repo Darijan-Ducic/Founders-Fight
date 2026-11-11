@@ -138,6 +138,10 @@ export function canAttack(duel, actor) {
     && (!actor.weapon.projectile?.returnSpeed || !duel.projectiles.some(shot => shot.owner === actor));
 }
 
+export function faceOpponent(player, opponent) {
+  player.facing = Math.sign(opponent.x - player.x) || player.facing;
+}
+
 export function controlArmedPlayer(duel, action) {
   const { player, opponent } = duel;
   if (duel.result || player.hit > 0) return false;
@@ -147,7 +151,7 @@ export function controlArmedPlayer(duel, action) {
   }
   const ultimate = action === 'ultimate' && player.charge === MAX_CHARGE;
   if ((action === 'attack' || ultimate) && canAttack(duel, player)) {
-    player.facing = player.x <= opponent.x ? 1 : -1;
+    faceOpponent(player, opponent);
     player.ultimate = ultimate;
     if (ultimate) player.charge = 0;
     setPhase(player, 'windup', player.windup + (ultimate ? .27 : 0));
@@ -320,9 +324,9 @@ export function moveArmedPlayer(duel, dt, direction, bound) {
   moveJump(player, dt);
   moveRecoil(player, dt, bound);
   moveRecoil(opponent, dt, bound);
-  if (player.phase === 'ready') player.facing = player.x <= opponent.x ? 1 : -1;
   const x = player.x;
   walkPlayer(player, dt, direction, bound);
+  faceOpponent(player, opponent);
   moveAdvance(player, opponent, dt, bound);
   return Math.sign(player.x - x);
 }
@@ -334,7 +338,7 @@ function moveActors(duel, dt, direction) {
   moveRecoil(player, dt);
   moveRecoil(opponent, dt);
   const distance = Math.abs(opponent.x - player.x);
-  if (player.phase === 'ready') player.facing = side;
+  faceOpponent(player, opponent);
   if (opponent.phase === 'ready') opponent.facing = -side;
 
   walkPlayer(player, dt, direction, boundX);
@@ -390,6 +394,7 @@ function moveOpponent(duel, dt, side, distance) {
     opponent.x = clamp(opponent.x - side * Math.min(distance - stance, speed * dt), LEFT, RIGHT);
     opponent.moving = true;
   }
+  faceOpponent(player, opponent);
 }
 
 export function projectileOverlapsHeight(height, radius, { bottom, top }) {

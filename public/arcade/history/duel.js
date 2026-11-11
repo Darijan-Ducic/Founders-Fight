@@ -1,5 +1,5 @@
 import {
-  buildCharge, controlArmedPlayer, createArmedPlayer, healthWinner, interruptWindup,
+  buildCharge, controlArmedPlayer, createArmedPlayer, faceOpponent, healthWinner, interruptWindup,
   DEFAULT_HURTBOX, FLOOR, jumpHeight, MAX_CHARGE, moveArmedPlayer, projectileOverlapsHeight, ROUND_SECONDS,
   stepArmedAttack, UNITS_PER_METER,
 } from '../duel.js';
@@ -395,6 +395,7 @@ function tick(duel, direction, dt) {
     player.x = midpoint - side * 11.5;
     boss.x = midpoint + side * 11.5;
   }
+  faceOpponent(player, boss);
   const bossHp = boss.hp;
   const contact = stepArmedAttack(duel, dt, (facing, y) => shieldBlocks(duel, facing, y));
   if (contact === false) duel.tactics.whiffAt = duel.elapsed;
@@ -403,6 +404,7 @@ function tick(duel, direction, dt) {
     if (!defending) updateBoss(duel, movement, dt);
     moveShots(duel, dt);
   }
+  faceOpponent(player, boss);
   if (boss.moving && boss.y === 0 && boss.hit === 0) {
     boss.gait += (boss.x - bossStartX) * boss.facing / (boss.bodyHeight * BOSS_STRIDE_RATIO);
   }
