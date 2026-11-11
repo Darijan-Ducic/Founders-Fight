@@ -103,7 +103,7 @@ function surface(width, height) {
   return canvas;
 }
 
-function rasterize(source, logicalHeight) {
+function rasterize(source, logicalHeight, rig) {
   const height = Math.round(logicalHeight * spriteDensity);
   const width = Math.round(source.width * height / source.height);
   const canvas = surface(width, height);
@@ -115,7 +115,20 @@ function rasterize(source, logicalHeight) {
     pixels.data[alpha] = pixels.data[alpha] >= 128 ? 255 : 0;
   }
   c.putImageData(pixels, 0, 0);
-  return canvas;
+
+  const hips = Math.round(height * rig.hips);
+  const split = Math.round(width * rig.split);
+  let strideStart = hips;
+  // Start the stride below the last row where the painted fabric crosses
+  // the leg split. Moving the halves higher up would tear the silhouette.
+  for (let y = height - 1; y >= hips; y--) {
+    const alpha = (y * width + split) * 4 + 3;
+    if (pixels.data[alpha - 4] && pixels.data[alpha]) {
+      strideStart = y + 1;
+      break;
+    }
+  }
+  return { canvas, hips, split, strideStart };
 }
 
 function taperWidth(rig, y) {
@@ -147,7 +160,7 @@ export function prepareFighterSprite(source, index) {
   source = matchFighterSkin(source, index);
   if (rig.torsoTaper) source = taperTorso(source, rig);
   const logicalHeight = rig.stature ? rig.stature * UNITS_PER_METER / 100 : rig.height;
-  const canvas = rasterize(source, logicalHeight);
+  const { canvas, hips, split, strideStart } = rasterize(source, logicalHeight, rig);
   const { width, height } = canvas;
   // Keep the same face pixels and palette in the arena and the close-ups.
   const portraitSize = Math.round(height * rig.collar / .68);
@@ -160,8 +173,9 @@ export function prepareFighterSprite(source, index) {
     stature: rig.stature,
     axis: Math.round(width * rig.axis),
     shoulders: Math.round(height * rig.collar),
-    hips: Math.round(height * rig.hips),
-    split: Math.round(width * rig.split),
+    hips,
+    split,
+    strideStart,
     gripX: Math.round(width * gripX),
     gripY: Math.round(height * handY),
   };
@@ -177,7 +191,7 @@ export function drawFittedPortrait(c, sprite) {
 }
 
 export function drawFittedFighter(c, sprite, actor, time, wind, strike) {
-  const { canvas, axis, shoulders, hips, split, gripX, gripY } = sprite;
+  const { canvas, axis, shoulders, hips, split, strideStart, gripX, gripY } = sprite;
   const { width, height } = canvas;
   const stride = actor.moving ? Math.sin(time * 15) : 0;
   const bob = actor.moving ? -Math.abs(stride) * 2 : Math.sin(time * 4);
@@ -185,8 +199,9 @@ export function drawFittedFighter(c, sprite, actor, time, wind, strike) {
   const collarBand = shoulders + Math.round((hips - shoulders) * .36);
   const torsoWeight = y => Math.min(1, Math.max(0, (hips - y) / (hips - collarBand)));
   const legWeight = y => Math.max(0, (y - hips) / (height - hips));
+  const strideLength = Math.max(1, height - strideStart);
   const sway = y => Math.round(lean * spriteDensity * torsoWeight(y));
-  const sweep = y => Math.round(stride * spriteDensity * 5 * legWeight(y));
+  const sweep = y => Math.round(stride * spriteDensity * 5 * Math.max(0, (y - strideStart) / strideLength));
   const rise = y => Math.round(bob * spriteDensity * (1 - legWeight(y)));
 
   c.save();

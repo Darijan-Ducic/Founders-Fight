@@ -50,6 +50,40 @@ function playerState(page) {
   });
 }
 
+async function assertFighterPantsStayJoined(page) {
+  const torn = await page.evaluate(async () => {
+    const { loadFighterArt, roster } = await import('./art.js');
+    const { drawFittedFighter, spriteDensity } = await import('./fighter-sprites.js');
+    const sprites = await loadFighterArt();
+    return sprites.flatMap((sprite, index) => {
+      const { width, height } = sprite.canvas;
+      const padding = 16;
+      const pose = document.createElement('canvas');
+      pose.width = width + 2 * padding;
+      pose.height = height + 2 * padding;
+      const c = pose.getContext('2d', { willReadFrequently: true });
+      const top = padding + sprite.hips;
+      const rows = Math.floor((height - sprite.hips) / 2);
+      function joinedDepth(moving, time) {
+        c.clearRect(0, 0, pose.width, pose.height);
+        c.setTransform(spriteDensity, 0, 0, spriteDensity, padding + sprite.axis, padding + height);
+        drawFittedFighter(c, sprite, { moving }, time, false, false);
+        c.resetTransform();
+        const { data } = c.getImageData(padding + sprite.split - 1, top, 2, rows);
+        for (let row = rows - 1; row >= 0; row--) {
+          if (data[row * 8 + 3] && data[row * 8 + 7]) return row;
+        }
+        return -1;
+      }
+      const standing = joinedDepth(false, 0);
+      const walking = joinedDepth(true, Math.PI / 30);
+      // The outward step may lift the hips by up to two game pixels.
+      return standing >= 0 && walking >= standing - 2 * spriteDensity ? [] : [roster[index].name];
+    });
+  });
+  assert.deepEqual(torn, [], 'every founder keeps the painted pants joined at the widest step');
+}
+
 try {
   const desktop = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
   const page = await desktop.newPage();
@@ -58,6 +92,7 @@ try {
   await page.clock.install();
   await page.goto(url, { waitUntil: 'networkidle' });
   assert.equal(await page.title(), 'Founders Fight');
+  await assertFighterPantsStayJoined(page);
 
   const backdropUrl = () => page.locator('#arena').evaluate(arena => arena.style.getPropertyValue('--stage-backdrop'));
   const cards = page.locator('#roster .card');
