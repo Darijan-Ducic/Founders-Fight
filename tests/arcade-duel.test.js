@@ -9,7 +9,7 @@ function setup(playerId, opponentId, distance) {
   return duel;
 }
 
-test('each signature weapon winds up, lands one hit and recovers', () => {
+test('each signature weapon winds up, lands its hits and recovers', () => {
   assert.equal(new Set(Object.values(weapons).map(({ type }) => type)).size, 8);
   for (const [id, weapon] of Object.entries(weapons)) {
     const distance = weapon.type === 'slam' || weapon.type === 'bolt' || weapon.type === 'orb' ? 90 : 40;
@@ -26,13 +26,14 @@ test('each signature weapon winds up, lands one hit and recovers', () => {
     assert.equal(duel.player.struck, true, id);
     stepDuel(duel, 1.5);
     const damage = weapon.projectile?.damage ?? weapon.damage;
-    assert.equal(duel.opponent.hp, duel.opponent.maxHp - damage, id);
+    const passes = weapon.projectile?.returnSpeed ? 2 : 1;
+    assert.equal(duel.opponent.hp, duel.opponent.maxHp - damage * passes, id);
     assert.equal(duel.player.phase, 'ready', id);
     assert.equal(duel.projectiles.length, 0, id);
   }
 });
 
-test('Super Search returns after contact and waits for the catch before rearming', () => {
+test('Super Search hits again on its return and waits for the catch before rearming', () => {
   const duel = setup('page', 'sam', 95);
   duel.opponent.speed = 0;
   duel.opponent.cooldown = 10;
@@ -45,7 +46,8 @@ test('Super Search returns after contact and waits for the catch before rearming
 
   stepDuel(duel, 1.2, -1);
   assert.ok(duel.player.x < 80);
-  assert.equal(duel.opponent.hp, duel.opponent.maxHp - weapons.page.damage);
+  assert.equal(duel.opponent.hp, duel.opponent.maxHp - 2 * weapons.page.damage);
+  assert.equal(duel.player.discsOut, 0);
   assert.equal(duel.projectiles.length, 0);
   assert.equal(act(duel, 'attack'), true);
 });

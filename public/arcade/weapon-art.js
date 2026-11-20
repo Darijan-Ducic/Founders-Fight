@@ -1,6 +1,7 @@
 const ink = '#191823';
 const steel = '#d3ced0';
 const light = '#fcf0da';
+export const googleColors = ['#4285f4', '#ea4335', '#fbbc05', '#34a853'];
 
 function shape(c, color, points) {
   c.fillStyle = color;
@@ -14,11 +15,6 @@ function shape(c, color, points) {
 function bar(c, color, x, y, width, height) {
   c.fillStyle = color;
   c.fillRect(x, y, width, height);
-}
-
-function octagon(radius) {
-  const cut = Math.round(radius * .43);
-  return [[-cut,-radius],[cut,-radius],[radius,-cut],[radius,cut],[cut,radius],[-cut,radius],[-radius,cut],[-radius,-cut]];
 }
 
 const designs = {
@@ -73,19 +69,40 @@ const designs = {
     },
   },
   orb: {
-    angles: [-.15, -.57, .08],
+    angles: [-.12, -.62, .1],
     paint(c, color, actor) {
-      c.translate(9, 0);
-      shape(c, ink, [[-15,-4],[-9,-9],[6,-10],[14,-6],[17,-2],[16,4],[8,9],[-8,9],[-15,5]]);
-      shape(c, '#3c524d', [[-13,-3],[-8,-7],[5,-8],[13,-4],[15,-1],[14,3],[7,7],[-7,7],[-13,4]]);
-      shape(c, '#79a48a', [[-12,-3],[-8,-7],[5,-8],[13,-4],[15,-1],[13,2],[6,4],[-7,4],[-12,2]]);
-      shape(c, '#243630', [[-7,-2],[-3,-5],[7,-5],[13,-2],[13,1],[7,3],[-4,3]]);
-      bar(c, '#b8d1ba', -6,-7,9,1);
-      bar(c, '#8fada0', 6,5,4,1);
-      bar(c, color, 1,-2,8,2);
-      if (actor.phase === 'windup') {
-        c.globalAlpha *= .9 * actor.attackProgress;
-        bar(c, light, 2,-2,6,2);
+      const charging = actor.phase === 'windup';
+      const glow = charging ? actor.attackProgress : 0;
+      bar(c, ink, -4,-3,9,7);
+      bar(c, '#3a4356', -3,-2,7,5);
+      c.translate(15, 0);
+      shape(c, ink, [[-13,-6],[-6,-9],[9,-9],[15,-5],[15,5],[9,8],[-6,8],[-13,5]]);
+      shape(c, '#e7ecf4', [[-11,-5],[-5,-7],[8,-7],[13,-4],[13,4],[8,6],[-5,6],[-11,4]]);
+      shape(c, '#aeb8c8', [[-11,1],[13,1],[13,4],[8,6],[-5,6],[-11,4]]);
+      bar(c, '#232a3a', -6,-4,13,4);
+      googleColors.forEach((led, i) => {
+        bar(c, led, -5 + i * 3,-3,2,2);
+        if (glow > i * .25) bar(c, light, -5 + i * 3,-3,1,1);
+      });
+      shape(c, ink, [[12,-8],[17,-11],[19,-9],[15,-5]]);
+      shape(c, ink, [[12,7],[17,10],[19,8],[15,4]]);
+      bar(c, steel, 15,-9,3,1);
+      bar(c, steel, 15,8,3,1);
+      if (!actor.discsOut) {
+        c.save();
+        c.translate(20, 0);
+        if (charging) c.rotate(actor.attackProgress * 9);
+        c.scale(.62, .62);
+        paintIndexDisc(c, color, actor.ultimate);
+        c.restore();
+      }
+      if (glow > 0) {
+        c.globalAlpha *= .25 + glow * .5;
+        c.strokeStyle = actor.ultimate ? light : color;
+        c.lineWidth = 1;
+        c.beginPath();
+        c.arc(20, 0, 9 + glow * 3, 0, Math.PI * 2);
+        c.stroke();
       }
     },
   },
@@ -126,13 +143,45 @@ const designs = {
   },
 };
 
+function disc(c, color, radius) {
+  c.fillStyle = color;
+  c.beginPath();
+  c.arc(0, 0, radius, 0, Math.PI * 2);
+  c.fill();
+}
+
 export function paintIndexDisc(c, color, ultimate) {
-  shape(c, ink, octagon(12));
-  shape(c, ultimate ? light : color, octagon(11));
-  shape(c, '#334c45', octagon(8));
-  shape(c, '#557469', octagon(5));
-  bar(c, ultimate ? '#fff2cb' : '#c0d5c2', -3,-2,6,4);
-  bar(c, light, -4,-11,5,1);
+  if (ultimate) {
+    c.save();
+    c.globalAlpha *= .35;
+    disc(c, color, 17);
+    c.restore();
+  }
+  disc(c, ink, 13);
+  googleColors.forEach((segment, i) => {
+    const from = i * Math.PI / 2 + .1;
+    const to = (i + 1) * Math.PI / 2 - .1;
+    c.fillStyle = segment;
+    c.beginPath();
+    c.arc(0, 0, 12, from, to);
+    c.arc(0, 0, 7.5, to, from, true);
+    c.closePath();
+    c.fill();
+  });
+  disc(c, ultimate ? '#fff2cb' : '#f2f5fb', 7);
+  disc(c, '#1d2433', 5.2);
+  c.strokeStyle = ultimate ? '#fff2cb' : color;
+  c.lineWidth = 1.4;
+  c.beginPath();
+  c.arc(-.8, -.8, 2.4, 0, Math.PI * 2);
+  c.moveTo(1, 1);
+  c.lineTo(3.4, 3.4);
+  c.stroke();
+  c.strokeStyle = light;
+  c.lineWidth = 1;
+  c.beginPath();
+  c.arc(0, 0, 10.5, 3.6, 4.5);
+  c.stroke();
 }
 
 export function paintWeapon(c, actor, x, y) {

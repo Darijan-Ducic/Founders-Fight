@@ -1,6 +1,6 @@
 import { fighter } from './art.js';
 import { chargeReach } from './duel.js';
-import { paintIndexDisc } from './weapon-art.js';
+import { googleColors, paintIndexDisc } from './weapon-art.js';
 
 const width = 480;
 const floor = 223;
@@ -69,8 +69,15 @@ function drawProjectile(c, shot, elapsed, reducedMotion) {
     const speed = Math.hypot(vx, vy) || 1;
     const tailX = x - vx / speed * trail;
     const tailY = y - vy / speed * trail;
-    c.globalAlpha = shot.spent ? .46 : .76;
-    line(c, shot.returning ? light : color, ultimate ? 3 : 1.8, [tailX, tailY], [x, y]);
+    const nx = -(tailY - y) / trail;
+    const ny = (tailX - x) / trail;
+    const band = ultimate ? 2.6 : 1.8;
+    googleColors.forEach((stripe, i) => {
+      const shift = (i - 1.5) * band;
+      c.globalAlpha = (shot.spent ? .35 : .7) * (1 - Math.abs(i - 1.5) * .12);
+      line(c, shot.returning ? light : stripe, band,
+        [tailX + nx * shift, tailY + ny * shift], [x + nx * shift * .4, y + ny * shift * .4]);
+    });
     const turnAge = elapsed - (shot.turnedAt ?? -Infinity);
     if (turnAge < .18) {
       c.globalAlpha = 1 - turnAge / .18;
@@ -114,13 +121,16 @@ function drawStrike(c, effect, progress) {
     line(c, light, weight * .55, [19, -13], [22, 2], [31, -4]);
   } else if (weaponType === 'orb') {
     c.translate(offset, 0);
-    const flash = (ultimate ? 12 : 8) + progress * 9;
-    c.strokeStyle = color;
+    const flash = (ultimate ? 14 : 9) + progress * (ultimate ? 18 : 11);
     c.lineWidth = weight;
-    c.beginPath();
-    c.ellipse(0, 0, flash, flash * .72, 0, 0, Math.PI * 2);
-    c.stroke();
+    googleColors.forEach((segment, i) => {
+      c.strokeStyle = segment;
+      c.beginPath();
+      c.arc(0, 0, flash, i * Math.PI / 2 + progress * 2, (i + 1) * Math.PI / 2 - .25 + progress * 2);
+      c.stroke();
+    });
     line(c, light, 1, [4, -flash * .42], [flash, 0], [flash + 5, 4]);
+    if (ultimate) line(c, light, 1.2, [flash * .4, -flash], [flash * 1.3, 0], [flash * .4, flash]);
   } else if (weaponType === 'bolt') {
     line(c, color, weight, [23, -24], [30, -11], [23, 0], [38 + progress * 9, 0]);
     line(c, light, 1, [23, -9], [23, 0], [34, 0]);

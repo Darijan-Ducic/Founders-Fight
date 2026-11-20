@@ -40,13 +40,13 @@ export const weapons = {
     ultimateAttack: { damage: 45, range: 103, height: 61 },
   },
   page: {
-    name: 'Super Search', type: 'orb', color: '#8ee7a6', maxHp: 162,
-    damage: 21, range: 212, windup: .42, recovery: .52, height: 26,
-    impact: { push: 8, stun: .17 },
-    projectile: { ...indexLauncher, speed: 184, radius: 9, stance: 150, returnSpeed: 310 },
-    description: 'Launch a spinning Index Disc that can hit on either pass. Catch it to fire again.',
+    name: 'Super Search', type: 'orb', color: '#5b9bff', maxHp: 172,
+    damage: 23, range: 236, windup: .30, recovery: .38, height: 26,
+    impact: { push: 9, stun: .19 },
+    projectile: { ...indexLauncher, speed: 250, radius: 11, stance: 150, returnSpeed: 400 },
+    description: 'Throw a spinning Index Disc that hits on the way out and again on the way back. Catch it to throw again.',
     ultimate: 'Full Index',
-    ultimateAttack: { damage: 42, range: 322, projectile: { ...indexLauncher, speed: 215, radius: 13, returnSpeed: 330 } },
+    ultimateAttack: { damage: 20, range: 330, projectile: { ...indexLauncher, speed: 285, radius: 14, returnSpeed: 430, spread: [[1, 0], [.88, 18], [.78, -12]] } },
   },
   bezos: {
     name: 'Orbital Hammer', type: 'slam', color: '#a3b7ff', maxHp: 202,
@@ -233,6 +233,7 @@ function strike(duel, actor, target, blocked) {
   if (weapon.projectile) {
     const { speed, radius, spread = [[1, 0]], damage = weapon.damage, impact = weapon.impact,
       offset = PROJECTILE_OFFSET, returnSpeed, catchOffset, launchHeight: catchHeight, dropSpeed } = weapon.projectile;
+    if (returnSpeed) actor.discsOut = (actor.discsOut ?? 0) + spread.length;
     for (const [speedScale, lift] of spread) {
       const velocity = speed * speedScale;
       const muzzle = actor.x + facing * offset;
@@ -430,6 +431,7 @@ function moveIndexDisc(duel, shot, dt, blocked) {
     if (!shot.spent && projectileContact(duel, shot, x, y, blocked)) shot.spent = true;
     if (shot.time > EPSILON) return true;
     shot.returning = true;
+    shot.spent = false;
     shot.turnedAt = duel.elapsed;
     dt -= travel;
   }
@@ -438,7 +440,7 @@ function moveIndexDisc(duel, shot, dt, blocked) {
   const dx = clamp(owner.x + owner.facing * catchOffset, radius, ARENA_WIDTH - radius) - x;
   const dy = FLOOR - owner.y - catchHeight - y;
   const duration = Math.hypot(dx, dy) / returnSpeed;
-  if (duration <= EPSILON) return false;
+  if (duration <= EPSILON) return catchDisc(owner);
 
   const travel = Math.min(dt, duration);
   shot.vx = dx / duration;
@@ -447,7 +449,12 @@ function moveIndexDisc(duel, shot, dt, blocked) {
   shot.y = projectileYAfter(shot, travel);
   shot.time = duration - travel;
   if (travel > 0 && !shot.spent && projectileContact(duel, shot, x, y, blocked)) shot.spent = true;
-  return shot.time > EPSILON;
+  return shot.time > EPSILON || catchDisc(owner);
+}
+
+function catchDisc(owner) {
+  owner.discsOut = Math.max(0, (owner.discsOut ?? 1) - 1);
+  return false;
 }
 
 function updateEffects(duel, dt, blocked) {
