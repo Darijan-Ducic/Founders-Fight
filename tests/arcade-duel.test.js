@@ -12,7 +12,7 @@ function setup(playerId, opponentId, distance) {
 test('each signature weapon winds up, lands its hits and recovers', () => {
   assert.equal(new Set(Object.values(weapons).map(({ type }) => type)).size, 8);
   for (const [id, weapon] of Object.entries(weapons)) {
-    const distance = weapon.type === 'slam' || weapon.type === 'bolt' || weapon.type === 'orb' ? 90 : 40;
+    const distance = weapon.type === 'slam' || weapon.type === 'bolt' || weapon.type === 'beam' ? 90 : 40;
     const duel = setup(id, 'page', distance);
     duel.opponent.cooldown = 5;
 
@@ -26,48 +26,37 @@ test('each signature weapon winds up, lands its hits and recovers', () => {
     assert.equal(duel.player.struck, true, id);
     stepDuel(duel, 1.5);
     const damage = weapon.projectile?.damage ?? weapon.damage;
-    const passes = weapon.projectile?.returnSpeed ? 2 : 1;
-    assert.equal(duel.opponent.hp, duel.opponent.maxHp - damage * passes, id);
+    assert.equal(duel.opponent.hp, duel.opponent.maxHp - damage, id);
     assert.equal(duel.player.phase, 'ready', id);
     assert.equal(duel.projectiles.length, 0, id);
   }
 });
 
-test('Super Search hits again on its return and waits for the catch before rearming', () => {
-  const duel = setup('page', 'sam', 95);
+test('Super Search fires straight shots that can be chained back to back', () => {
+  const duel = setup('page', 'sam', 200);
   duel.opponent.speed = 0;
   duel.opponent.cooldown = 10;
-  assert.equal(act(duel, 'attack'), true);
-  stepDuel(duel, weapons.page.windup + weapons.page.recovery + .02);
-  assert.equal(duel.player.phase, 'ready');
-  assert.equal(duel.opponent.hp, duel.opponent.maxHp - weapons.page.damage);
-  assert.equal(duel.projectiles.length, 1);
-  assert.equal(act(duel, 'attack'), false);
-
-  stepDuel(duel, 1.2, -1);
-  assert.ok(duel.player.x < 80);
-  assert.equal(duel.opponent.hp, duel.opponent.maxHp - 2 * weapons.page.damage);
-  assert.equal(duel.player.discsOut, 0);
-  assert.equal(duel.projectiles.length, 0);
-  assert.equal(act(duel, 'attack'), true);
+  for (let shot = 1; shot <= 2; shot++) {
+    assert.equal(act(duel, 'attack'), true);
+    stepDuel(duel, weapons.page.windup + weapons.page.recovery + .02);
+    assert.equal(duel.player.phase, 'ready');
+    stepDuel(duel, .3);
+    assert.equal(duel.opponent.hp, duel.opponent.maxHp - shot * weapons.page.damage);
+    assert.equal(duel.projectiles.length, 0);
+  }
 });
 
-test('an empowered Index Disc turns at the arena edge and returns to a jumping owner', () => {
-  const duel = setup('page', 'sam', 50);
-  duel.player.x = 392;
-  duel.opponent.x = 442;
+test('Full Index fires a single heavy beam across the arena', () => {
+  const duel = setup('page', 'sam', 330);
   duel.opponent.speed = 0;
   duel.opponent.cooldown = 10;
   duel.player.charge = MAX_CHARGE;
-
   assert.equal(act(duel, 'ultimate'), true);
-  for (let i = 0; i < 160 && !duel.projectiles[0]?.returning; i++) stepDuel(duel, 1 / 120);
-  const disc = duel.projectiles[0];
-  assert.ok(disc?.returning && disc.ultimate);
-  assert.ok(disc.x + disc.radius <= 480 + 1e-6);
-  assert.equal(act(duel, 'jump'), true);
-  stepDuel(duel, .85, -1);
-  assert.equal(duel.projectiles.length, 0);
+  for (let i = 0; i < 240 && !duel.projectiles.length; i++) stepDuel(duel, 1 / 120);
+  assert.equal(duel.projectiles.length, 1);
+  assert.ok(duel.projectiles[0].ultimate);
+  stepDuel(duel, 1);
+  assert.equal(duel.opponent.hp, duel.opponent.maxHp - weapons.page.ultimateAttack.damage);
 });
 
 test('a charge travels before contact and lands only within its advertised reach', () => {

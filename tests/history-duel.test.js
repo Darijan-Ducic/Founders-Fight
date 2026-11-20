@@ -646,23 +646,6 @@ test('A melee boss can close distance while jumping a visible bolt', () => {
   assert.equal(boss.hp, boss.maxHp);
 });
 
-test('Ramesses can jump an Index Disc on its way out and get hit on its return', () => {
-  const duel = startDuel({}, chapters[0], 'page');
-  const boss = duel.opponent;
-  duel.phase = 'fight';
-  boss.x = duel.player.x + 160;
-
-  assert.equal(action(duel, 'attack'), true);
-  tickUntil(duel, () => boss.evade?.kind === 'jump');
-  tickUntil(duel, () => duel.projectiles[0]?.returning);
-  assert.equal(boss.hp, boss.maxHp);
-  assert.ok(duel.projectiles[0].vx < 0);
-
-  tickUntil(duel, () => boss.hp < boss.maxHp);
-  assert.equal(boss.hp, boss.maxHp - weapons.page.damage);
-  tickUntil(duel, () => duel.projectiles.length === 0);
-});
-
 test('Rivals respect reaction time and cannot cancel a committed Ultimate to evade', () => {
   const ramesses = chapters[0];
   for (const mode of ['unseen', 'committed']) {

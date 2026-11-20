@@ -2,8 +2,8 @@ export const MAX_HP = 180;
 export const MAX_CHARGE = 100;
 export const ROUND_SECONDS = 80;
 
-// The release pose moves the launcher forward of its resting grip.
-const indexLauncher = { offset: 46, catchOffset: 38, launchHeight: 80, dropSpeed: 252 };
+// Shots leave the raised muzzle and dive onto the fighter's lane.
+const searchBlaster = { offset: 52, launchHeight: 72, dropSpeed: 300 };
 
 export const weapons = {
   sam: {
@@ -40,13 +40,13 @@ export const weapons = {
     ultimateAttack: { damage: 45, range: 103, height: 61 },
   },
   page: {
-    name: 'Super Search', type: 'orb', color: '#5b9bff', maxHp: 172,
-    damage: 23, range: 236, windup: .30, recovery: .38, height: 26,
+    name: 'Super Search', type: 'beam', color: '#5b9bff', maxHp: 172,
+    damage: 26, range: 300, windup: .24, recovery: .30, height: 40,
     impact: { push: 9, stun: .19 },
-    projectile: { ...indexLauncher, speed: 250, radius: 11, stance: 150, returnSpeed: 400 },
-    description: 'Throw a spinning Index Disc that hits on the way out and again on the way back. Catch it to throw again.',
+    projectile: { ...searchBlaster, speed: 440, radius: 5, stance: 160 },
+    description: 'A rapid search blaster. Fast straight shots that hit hard from across the arena.',
     ultimate: 'Full Index',
-    ultimateAttack: { damage: 20, range: 330, projectile: { ...indexLauncher, speed: 285, radius: 14, returnSpeed: 430, spread: [[1, 0], [.88, 18], [.78, -12]] } },
+    ultimateAttack: { damage: 50, range: 420, projectile: { ...searchBlaster, speed: 620, radius: 12 } },
   },
   bezos: {
     name: 'Orbital Hammer', type: 'slam', color: '#a3b7ff', maxHp: 202,
@@ -134,8 +134,7 @@ function setPhase(actor, phase, time) {
 }
 
 export function canAttack(duel, actor) {
-  return actor.phase === 'ready' && actor.cooldown === 0 && actor.hit === 0
-    && (!actor.weapon.projectile?.returnSpeed || !duel.projectiles.some(shot => shot.owner === actor));
+  return actor.phase === 'ready' && actor.cooldown === 0 && actor.hit === 0;
 }
 
 export function faceOpponent(player, opponent) {
@@ -232,15 +231,12 @@ function strike(duel, actor, target, blocked) {
   }
   if (weapon.projectile) {
     const { speed, radius, spread = [[1, 0]], damage = weapon.damage, impact = weapon.impact,
-      offset = PROJECTILE_OFFSET, returnSpeed, catchOffset, launchHeight: catchHeight, dropSpeed } = weapon.projectile;
-    if (returnSpeed) actor.discsOut = (actor.discsOut ?? 0) + spread.length;
+      offset = PROJECTILE_OFFSET, dropSpeed } = weapon.projectile;
     for (const [speedScale, lift] of spread) {
       const velocity = speed * speedScale;
-      const muzzle = actor.x + facing * offset;
-      const x = returnSpeed ? clamp(muzzle, radius, ARENA_WIDTH - radius) : muzzle;
+      const x = actor.x + facing * offset;
       const range = weapon.range - offset;
-      const distanceToEdge = facing > 0 ? ARENA_WIDTH - radius - x : x - radius;
-      duel.projectiles.push({
+      const shot = {
         owner: actor,
         x,
         y: FLOOR - launchHeight - lift,
@@ -249,11 +245,13 @@ function strike(duel, actor, target, blocked) {
         color: weapon.color,
         type: weapon.type,
         damage, impact,
-        time: (returnSpeed ? Math.min(range, distanceToEdge) : range) / velocity,
+        time: range / velocity,
         launchedAt: duel.elapsed,
         ultimate,
-        ...(returnSpeed ? { returnSpeed, catchOffset, catchHeight, dropSpeed, cruiseY: FLOOR - actor.y - weapon.height - lift } : {}),
-      });
+        ...(dropSpeed ? { dropSpeed, cruiseY: FLOOR - actor.y - weapon.height - lift } : {}),
+      };
+      const pointBlank = offset > PROJECTILE_OFFSET && projectileContact(duel, shot, actor.x, shot.y, blocked);
+      if (!pointBlank) duel.projectiles.push(shot);
     }
     return true;
   }
@@ -403,7 +401,6 @@ export function projectileOverlapsHeight(height, radius, { bottom, top }) {
 }
 
 export function projectileYAfter(shot, time) {
-  if (shot.returning) return shot.y + shot.vy * time;
   if (shot.dropSpeed) return Math.min(shot.cruiseY, shot.y + shot.dropSpeed * time);
   return shot.y;
 }
@@ -421,51 +418,14 @@ function projectileContact(duel, shot, fromX, fromY, blocked) {
   return true;
 }
 
-function moveIndexDisc(duel, shot, dt, blocked) {
-  if (!shot.returning) {
-    const { x, y } = shot;
-    const travel = Math.min(dt, shot.time);
-    shot.x += shot.vx * travel;
-    shot.y = projectileYAfter(shot, travel);
-    shot.time -= travel;
-    if (!shot.spent && projectileContact(duel, shot, x, y, blocked)) shot.spent = true;
-    if (shot.time > EPSILON) return true;
-    shot.returning = true;
-    shot.spent = false;
-    shot.turnedAt = duel.elapsed;
-    dt -= travel;
-  }
-
-  const { owner, x, y, radius, returnSpeed, catchOffset, catchHeight } = shot;
-  const dx = clamp(owner.x + owner.facing * catchOffset, radius, ARENA_WIDTH - radius) - x;
-  const dy = FLOOR - owner.y - catchHeight - y;
-  const duration = Math.hypot(dx, dy) / returnSpeed;
-  if (duration <= EPSILON) return catchDisc(owner);
-
-  const travel = Math.min(dt, duration);
-  shot.vx = dx / duration;
-  shot.vy = dy / duration;
-  shot.x += shot.vx * travel;
-  shot.y = projectileYAfter(shot, travel);
-  shot.time = duration - travel;
-  if (travel > 0 && !shot.spent && projectileContact(duel, shot, x, y, blocked)) shot.spent = true;
-  return shot.time > EPSILON || catchDisc(owner);
-}
-
-function catchDisc(owner) {
-  owner.discsOut = Math.max(0, (owner.discsOut ?? 1) - 1);
-  return false;
-}
-
 function updateEffects(duel, dt, blocked) {
   for (const spark of duel.effects) spark.time -= dt;
   duel.effects = duel.effects.filter(spark => spark.time > 0);
   duel.projectiles = duel.projectiles.filter(projectile => {
-    if (projectile.returnSpeed) return moveIndexDisc(duel, projectile, dt, blocked);
-    const { y, vx } = projectile;
-    const previous = projectile.x;
+    const { x: previous, y, vx } = projectile;
     const travelTime = Math.min(dt, projectile.time);
     projectile.x += vx * travelTime;
+    projectile.y = projectileYAfter(projectile, travelTime);
     projectile.time -= travelTime;
     if (projectileContact(duel, projectile, previous, y, blocked)) return false;
     return projectile.time > EPSILON && projectile.x >= 0 && projectile.x <= ARENA_WIDTH;

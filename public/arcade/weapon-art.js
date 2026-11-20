@@ -68,41 +68,39 @@ const designs = {
       bar(c, light, 14,-3,16,1);
     },
   },
-  orb: {
-    angles: [-.12, -.62, .1],
+  beam: {
+    angles: [.12, -.3, .45],
     paint(c, color, actor) {
-      const charging = actor.phase === 'windup';
-      const glow = charging ? actor.attackProgress : 0;
-      bar(c, ink, -4,-3,9,7);
-      bar(c, '#3a4356', -3,-2,7,5);
-      c.translate(15, 0);
-      shape(c, ink, [[-13,-6],[-6,-9],[9,-9],[15,-5],[15,5],[9,8],[-6,8],[-13,5]]);
-      shape(c, '#e7ecf4', [[-11,-5],[-5,-7],[8,-7],[13,-4],[13,4],[8,6],[-5,6],[-11,4]]);
-      shape(c, '#aeb8c8', [[-11,1],[13,1],[13,4],[8,6],[-5,6],[-11,4]]);
-      bar(c, '#232a3a', -6,-4,13,4);
-      googleColors.forEach((led, i) => {
-        bar(c, led, -5 + i * 3,-3,2,2);
-        if (glow > i * .25) bar(c, light, -5 + i * 3,-3,1,1);
+      const glow = actor.phase === 'windup' ? actor.attackProgress : 0;
+      const recoil = actor.phase === 'recovery' ? Math.max(0, 1 - actor.attackProgress * 3) * 3 : 0;
+      c.translate(-recoil, 0);
+      shape(c, ink, [[-6,-3],[4,-3],[6,8],[1,11],[-4,10],[-7,4]]);
+      shape(c, '#2d3446', [[-4,-2],[3,-2],[4,7],[1,9],[-3,8],[-5,3]]);
+      for (let y = 1; y < 8; y += 2) bar(c, '#4a5469', -3,y,5,1);
+      shape(c, ink, [[4,-2],[11,-2],[11,1],[8,5],[5,5],[6,3],[9,1],[5,1]]);
+      bar(c, '#9aa4b6', 6,0,1,3);
+      shape(c, ink, [[-9,-11],[-4,-14],[22,-14],[27,-11],[27,-1],[-6,-1],[-10,-5]]);
+      shape(c, '#f2f5fb', [[-7,-10],[-3,-12],[21,-12],[25,-10],[25,-6],[-8,-6]]);
+      shape(c, '#b9c3d4', [[-8,-6],[25,-6],[25,-3],[-6,-3]]);
+      bar(c, '#232a3a', -2,-16,14,2);
+      bar(c, steel, 0,-16,3,1);
+      bar(c, '#232a3a', 3,-10,18,3);
+      googleColors.forEach((cell, i) => {
+        bar(c, cell, 4 + i * 4,-9,3,2);
+        if (glow > i * .25 || actor.ultimate) bar(c, light, 4 + i * 4,-9,1,1);
       });
-      shape(c, ink, [[12,-8],[17,-11],[19,-9],[15,-5]]);
-      shape(c, ink, [[12,7],[17,10],[19,8],[15,4]]);
-      bar(c, steel, 15,-9,3,1);
-      bar(c, steel, 15,8,3,1);
-      if (!actor.discsOut) {
-        c.save();
-        c.translate(20, 0);
-        if (charging) c.rotate(actor.attackProgress * 9);
-        c.scale(.62, .62);
-        paintIndexDisc(c, color, actor.ultimate);
-        c.restore();
-      }
+      shape(c, ink, [[25,-11],[37,-11],[40,-8],[40,-3],[37,-1],[25,-1]]);
+      bar(c, steel, 26,-9,11,6);
+      bar(c, light, 27,-9,9,1);
+      bar(c, '#232a3a', 29,-6,2,3);
+      bar(c, '#232a3a', 33,-6,2,3);
+      bar(c, actor.ultimate ? light : color, 37,-9,3,6);
       if (glow > 0) {
-        c.globalAlpha *= .25 + glow * .5;
-        c.strokeStyle = actor.ultimate ? light : color;
-        c.lineWidth = 1;
+        c.globalAlpha *= .3 + glow * .6;
+        c.fillStyle = actor.ultimate ? light : googleColors[Math.floor(glow * 8) % 4];
         c.beginPath();
-        c.arc(20, 0, 9 + glow * 3, 0, Math.PI * 2);
-        c.stroke();
+        c.arc(41, -6, 2 + glow * (actor.ultimate ? 6 : 3.5), 0, Math.PI * 2);
+        c.fill();
       }
     },
   },
@@ -142,47 +140,6 @@ const designs = {
     },
   },
 };
-
-function disc(c, color, radius) {
-  c.fillStyle = color;
-  c.beginPath();
-  c.arc(0, 0, radius, 0, Math.PI * 2);
-  c.fill();
-}
-
-export function paintIndexDisc(c, color, ultimate) {
-  if (ultimate) {
-    c.save();
-    c.globalAlpha *= .35;
-    disc(c, color, 17);
-    c.restore();
-  }
-  disc(c, ink, 13);
-  googleColors.forEach((segment, i) => {
-    const from = i * Math.PI / 2 + .1;
-    const to = (i + 1) * Math.PI / 2 - .1;
-    c.fillStyle = segment;
-    c.beginPath();
-    c.arc(0, 0, 12, from, to);
-    c.arc(0, 0, 7.5, to, from, true);
-    c.closePath();
-    c.fill();
-  });
-  disc(c, ultimate ? '#fff2cb' : '#f2f5fb', 7);
-  disc(c, '#1d2433', 5.2);
-  c.strokeStyle = ultimate ? '#fff2cb' : color;
-  c.lineWidth = 1.4;
-  c.beginPath();
-  c.arc(-.8, -.8, 2.4, 0, Math.PI * 2);
-  c.moveTo(1, 1);
-  c.lineTo(3.4, 3.4);
-  c.stroke();
-  c.strokeStyle = light;
-  c.lineWidth = 1;
-  c.beginPath();
-  c.arc(0, 0, 10.5, 3.6, 4.5);
-  c.stroke();
-}
 
 export function paintWeapon(c, actor, x, y) {
   const { type, color } = actor.weapon;
