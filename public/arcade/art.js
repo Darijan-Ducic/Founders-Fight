@@ -236,7 +236,7 @@ export function fighter(c, actor, time){
     rect(c,'#f5cd76',9,-54,2,2);
   }
   const weaponType=actor.weapon?.type;
-  const lowRelease=weaponType==='bolt'||weaponType==='orb'||weaponType==='slam';
+  const lowRelease=weaponType==='bolt'||weaponType==='beam'||weaponType==='slam';
   const handX=strike?(boss?40:lowRelease?18:29):wind?-5:18;
   const handY=strike?(lowRelease?-33:-52):wind?-66:-48;
   poly(c,ink,-12,-61,-5,-63,4,-51,handX,handY-5,handX+6,handY,handX+3,handY+5,1,-40,-10,-48);

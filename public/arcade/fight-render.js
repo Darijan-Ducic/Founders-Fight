@@ -1,6 +1,6 @@
 import { fighter } from './art.js';
 import { chargeReach } from './duel.js';
-import { paintIndexDisc } from './weapon-art.js';
+import { googleColors } from './weapon-art.js';
 
 const width = 480;
 const floor = 223;
@@ -17,7 +17,7 @@ function line(c, color, weight, ...points) {
 }
 
 function drawTell(c, actor) {
-  const { x, y, facing, weapon, attackProgress, ultimate } = actor;
+  const { x, facing, weapon, attackProgress } = actor;
   if (weapon.advance) {
     const tip = clamp(x + facing * chargeReach(actor), 25, width - 25);
     c.globalAlpha = .35 + attackProgress * .55;
@@ -25,12 +25,6 @@ function drawTell(c, actor) {
     line(c, weapon.color, 1.5, [tip - facing * 5, floor + 2], [tip, floor + 5], [tip - facing * 5, floor + 8]);
     c.globalAlpha = 1;
   }
-  c.strokeStyle = weapon.color;
-  c.lineWidth = ultimate ? 2.4 : 1.2;
-  c.beginPath();
-  c.arc(x + facing * 18, floor - y - 64, ultimate ? 17 : 10,
-    -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * attackProgress);
-  c.stroke();
 }
 
 export function drawArmedFighter(c, actor, elapsed, reducedMotion) {
@@ -63,28 +57,32 @@ function drawProjectile(c, shot, elapsed, reducedMotion) {
     c.lineTo(x + radius * facing, y + radius);
     c.fill();
     line(c, light, 1, [x - 3 * facing, y + radius - 2], [x + 2 * facing, y - radius]);
-  } else if (type === 'orb') {
+  } else if (type === 'beam') {
+    const length = ultimate ? 96 : 34;
+    const band = radius * .55;
     c.save();
-    const vy = shot.returning ? shot.vy : y < shot.cruiseY ? shot.dropSpeed : 0;
-    const speed = Math.hypot(vx, vy) || 1;
-    const tailX = x - vx / speed * trail;
-    const tailY = y - vy / speed * trail;
-    c.globalAlpha = shot.spent ? .46 : .76;
-    line(c, shot.returning ? light : color, ultimate ? 3 : 1.8, [tailX, tailY], [x, y]);
-    const turnAge = elapsed - (shot.turnedAt ?? -Infinity);
-    if (turnAge < .18) {
-      c.globalAlpha = 1 - turnAge / .18;
-      c.strokeStyle = light;
-      c.lineWidth = ultimate ? 2 : 1.2;
+    c.translate(Math.round(x), Math.round(y));
+    c.scale(facing, 1);
+    c.rotate(Math.atan2(shot.vy ?? 0, Math.abs(vx)));
+    googleColors.forEach((stripe, i) => {
+      const lane = (i - 1.5) * band;
+      c.globalAlpha = .85 - Math.abs(i - 1.5) * .15;
+      line(c, stripe, band, [-length * (1 - Math.abs(i - 1.5) * .18), lane], [0, lane * .6]);
+    });
+    c.globalAlpha = 1;
+    line(c, light, radius * .7, [-length * .7, 0], [radius * .4, 0]);
+    c.fillStyle = light;
+    c.beginPath();
+    c.ellipse(0, 0, radius * 1.3, radius * .8, 0, 0, Math.PI * 2);
+    c.fill();
+    if (ultimate && !reducedMotion) {
+      c.globalAlpha = .35 + .2 * Math.sin(elapsed * 40);
+      c.strokeStyle = color;
+      c.lineWidth = 2;
       c.beginPath();
-      c.arc(x, y, radius + 3 + (reducedMotion ? 0 : turnAge * 32), 0, Math.PI * 2);
+      c.ellipse(-4, 0, radius * 2, radius * 1.4, 0, 0, Math.PI * 2);
       c.stroke();
     }
-    c.globalAlpha = shot.spent ? .84 : 1;
-    c.translate(Math.round(x), Math.round(y));
-    if (!reducedMotion) c.rotate(Math.floor((elapsed - shot.launchedAt) * 24) * .43);
-    c.scale(radius / 12, radius / 12);
-    paintIndexDisc(c, color, ultimate);
     c.restore();
   } else {
     line(c, color, radius, [x - trail * facing, y], [x, y]);
@@ -112,15 +110,25 @@ function drawStrike(c, effect, progress) {
     c.ellipse(22, 4, 11 + progress * (ultimate ? 34 : 19), 4 + progress * 6, 0, 0, 2 * Math.PI);
     c.stroke();
     line(c, light, weight * .55, [19, -13], [22, 2], [31, -4]);
-  } else if (weaponType === 'orb') {
+  } else if (weaponType === 'beam') {
     c.translate(offset, 0);
-    const flash = (ultimate ? 12 : 8) + progress * 9;
-    c.strokeStyle = color;
-    c.lineWidth = weight;
+    const flash = (ultimate ? 13 : 7) + progress * (ultimate ? 16 : 8);
+    googleColors.forEach((ray, i) => {
+      const angle = (i - 1.5) * .42;
+      line(c, ray, weight, [Math.cos(angle) * 3, Math.sin(angle) * 3],
+        [Math.cos(angle) * flash * 1.4, Math.sin(angle) * flash * 1.4]);
+    });
+    c.fillStyle = light;
     c.beginPath();
-    c.ellipse(0, 0, flash, flash * .72, 0, 0, Math.PI * 2);
-    c.stroke();
-    line(c, light, 1, [4, -flash * .42], [flash, 0], [flash + 5, 4]);
+    c.arc(0, 0, (ultimate ? 6 : 3.5) * (1 - progress * .6), 0, Math.PI * 2);
+    c.fill();
+    if (ultimate) {
+      c.strokeStyle = color;
+      c.lineWidth = 1.6;
+      c.beginPath();
+      c.arc(0, 0, flash, 0, Math.PI * 2);
+      c.stroke();
+    }
   } else if (weaponType === 'bolt') {
     line(c, color, weight, [23, -24], [30, -11], [23, 0], [38 + progress * 9, 0]);
     line(c, light, 1, [23, -9], [23, 0], [34, 0]);

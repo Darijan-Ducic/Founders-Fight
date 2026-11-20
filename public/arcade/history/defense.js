@@ -39,15 +39,14 @@ function visibleWindup(duel, reaction) {
   const projectile = weapon.projectile;
   if (!projectile || gap > weapon.range) return;
   const {hurtbox} = boss;
-  const {speed, radius, spread = [[1, 0]], offset = PROJECTILE_OFFSET, dropSpeed = 0} = projectile;
-  const launchHeight = weapon.direct ? 9 : playerHeight + weapon.height;
+  const {speed, radius, spread = [[1, 0]], offset = PROJECTILE_OFFSET, slope = 0} = projectile;
+  const launchHeight = weapon.direct ? 9 : playerHeight + (projectile.launchHeight ?? weapon.height);
   const travel = Math.max(0, gap - offset - radius - hurtbox.radius);
   let nearest;
   for (const [speedScale, lift] of spread) {
     const flightTime = travel / (speed * speedScale);
     const arrival = time + flightTime;
-    const aboveLane = Math.max(0, (projectile.launchHeight ?? weapon.height) - weapon.height - dropSpeed * flightTime);
-    const height = launchHeight + lift + aboveLane - boss.y;
+    const height = launchHeight + lift - slope * travel - boss.y;
     if (arrival > readWindow || !projectileOverlapsHeight(height, radius, hurtbox)) continue;
     if (!nearest || arrival < nearest.time) nearest = {time: arrival, lift: height + radius - hurtbox.bottom + 1};
   }
