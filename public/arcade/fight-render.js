@@ -17,7 +17,7 @@ function line(c, color, weight, ...points) {
 }
 
 function drawTell(c, actor) {
-  const { x, y, facing, weapon, attackProgress, ultimate } = actor;
+  const { x, facing, weapon, attackProgress } = actor;
   if (weapon.advance) {
     const tip = clamp(x + facing * chargeReach(actor), 25, width - 25);
     c.globalAlpha = .35 + attackProgress * .55;
@@ -25,12 +25,6 @@ function drawTell(c, actor) {
     line(c, weapon.color, 1.5, [tip - facing * 5, floor + 2], [tip, floor + 5], [tip - facing * 5, floor + 8]);
     c.globalAlpha = 1;
   }
-  c.strokeStyle = weapon.color;
-  c.lineWidth = ultimate ? 2.4 : 1.2;
-  c.beginPath();
-  c.arc(x + facing * 18, floor - y - 64, ultimate ? 17 : 10,
-    -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * attackProgress);
-  c.stroke();
 }
 
 export function drawArmedFighter(c, actor, elapsed, reducedMotion) {
@@ -69,7 +63,7 @@ function drawProjectile(c, shot, elapsed, reducedMotion) {
     c.save();
     c.translate(Math.round(x), Math.round(y));
     c.scale(facing, 1);
-    if (y < shot.cruiseY) c.rotate(Math.atan2(shot.dropSpeed, Math.abs(vx)));
+    c.rotate(Math.atan2(shot.vy ?? 0, Math.abs(vx)));
     googleColors.forEach((stripe, i) => {
       const lane = (i - 1.5) * band;
       c.globalAlpha = .85 - Math.abs(i - 1.5) * .15;

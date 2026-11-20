@@ -162,7 +162,6 @@ function drawBoss(c, duel, sprite, reducedMotion) {
   const {move} = boss;
   const wind = move && !boss.struck;
   const special = move === chapter.special;
-  const burst = move && move === chapter.finalPhase?.attack;
   const charge = wind ? clamp(boss.attack / boss.windup, 0, 1) : 0;
   const lastBeat = move?.beats?.[duel.strikeIndex - 1]?.at ?? 0;
   const strikeAge = boss.struck ? boss.attack - boss.windup - lastBeat : Infinity;
@@ -173,15 +172,6 @@ function drawBoss(c, duel, sprite, reducedMotion) {
   const poseScale = boss.bodyHeight / (chapter.stature * GRIP_UNITS_PER_METER);
   const body = bossBodyPose(boss, wind, strike);
   const walking = !reducedMotion && boss.moving && boss.y === 0 && boss.hit === 0 && boss.hp > 0;
-  if ((special || burst || boss.intent) && wind) {
-    c.strokeStyle = chapter.accent;
-    c.lineWidth = burst ? 3 : 2;
-    c.globalAlpha = .35 + charge * .65;
-    c.beginPath();
-    c.ellipse(boss.x, floor, 24 + charge * 12, 5 + charge * 4, 0, 0, Math.PI * 2);
-    c.stroke();
-    c.globalAlpha = 1;
-  }
   if (boss.evade?.kind === 'step' && boss.moving) {
     const tail = -boss.evade.direction;
     line(c, chapter.accent + '9a', 1.5, [[boss.x + tail * 12, floor - 4], [boss.x + tail * 31, floor - 4]]);

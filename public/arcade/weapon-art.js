@@ -69,7 +69,7 @@ const designs = {
     },
   },
   beam: {
-    angles: [.12, -.3, .45],
+    angles: [.12, -.3, .15],
     paint(c, color, actor) {
       const glow = actor.phase === 'windup' ? actor.attackProgress : 0;
       const recoil = actor.phase === 'recovery' ? Math.max(0, 1 - actor.attackProgress * 3) * 3 : 0;

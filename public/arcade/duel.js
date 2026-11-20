@@ -2,8 +2,9 @@ export const MAX_HP = 180;
 export const MAX_CHARGE = 100;
 export const ROUND_SECONDS = 80;
 
-// Shots leave the raised muzzle and dive onto the fighter's lane.
-const searchBlaster = { offset: 52, launchHeight: 72, dropSpeed: 300 };
+
+// Shots leave the tilted barrel and keep its line all the way.
+const searchBlaster = { offset: 74, launchHeight: 81, slope: .15 };
 
 export const weapons = {
   sam: {
@@ -41,12 +42,12 @@ export const weapons = {
   },
   page: {
     name: 'Super Search', type: 'beam', color: '#5b9bff', maxHp: 172,
-    damage: 26, range: 300, windup: .24, recovery: .30, height: 40,
+    damage: 21, range: 290, windup: .32, recovery: .48, height: 40,
     impact: { push: 9, stun: .19 },
-    projectile: { ...searchBlaster, speed: 440, radius: 5, stance: 160 },
+    projectile: { ...searchBlaster, speed: 360, radius: 5, stance: 160 },
     description: 'A rapid search blaster. Fast straight shots that hit hard from across the arena.',
     ultimate: 'Full Index',
-    ultimateAttack: { damage: 50, range: 420, projectile: { ...searchBlaster, speed: 620, radius: 12 } },
+    ultimateAttack: { damage: 44, range: 420, projectile: { ...searchBlaster, speed: 560, radius: 12 } },
   },
   bezos: {
     name: 'Orbital Hammer', type: 'slam', color: '#a3b7ff', maxHp: 202,
@@ -231,7 +232,7 @@ function strike(duel, actor, target, blocked) {
   }
   if (weapon.projectile) {
     const { speed, radius, spread = [[1, 0]], damage = weapon.damage, impact = weapon.impact,
-      offset = PROJECTILE_OFFSET, dropSpeed } = weapon.projectile;
+      offset = PROJECTILE_OFFSET, slope = 0 } = weapon.projectile;
     for (const [speedScale, lift] of spread) {
       const velocity = speed * speedScale;
       const x = actor.x + facing * offset;
@@ -241,6 +242,7 @@ function strike(duel, actor, target, blocked) {
         x,
         y: FLOOR - launchHeight - lift,
         vx: facing * velocity,
+        vy: velocity * slope,
         radius,
         color: weapon.color,
         type: weapon.type,
@@ -248,7 +250,6 @@ function strike(duel, actor, target, blocked) {
         time: range / velocity,
         launchedAt: duel.elapsed,
         ultimate,
-        ...(dropSpeed ? { dropSpeed, cruiseY: FLOOR - actor.y - weapon.height - lift } : {}),
       };
       const pointBlank = offset > PROJECTILE_OFFSET && projectileContact(duel, shot, actor.x, shot.y, blocked);
       if (!pointBlank) duel.projectiles.push(shot);
@@ -401,8 +402,7 @@ export function projectileOverlapsHeight(height, radius, { bottom, top }) {
 }
 
 export function projectileYAfter(shot, time) {
-  if (shot.dropSpeed) return Math.min(shot.cruiseY, shot.y + shot.dropSpeed * time);
-  return shot.y;
+  return shot.y + (shot.vy ?? 0) * time;
 }
 
 function projectileContact(duel, shot, fromX, fromY, blocked) {
